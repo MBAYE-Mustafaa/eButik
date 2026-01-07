@@ -9,7 +9,9 @@ class Panier():
         if "session_panier" not in request.session:
             panier = self.session["session_panier"] = {}
 
-        self.panier = panier
+        self.panier = panier 
+
+        #pour créer une clé unique pour le produit dans le panier, en tenant compte de la taille si applicable
 
 
     def _make_key(self, product_id, size=None):
