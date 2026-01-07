@@ -1,0 +1,138 @@
+
+:root{
+    --leather-dark: #5b3a2a;
+    --leather-medium: #7c4a32;
+    --leather-light: #c99a6b;
+    --accent: #d4a45a;
+}
+
+body{
+    background: linear-gradient(180deg, #fffaf6 0%, #fff8f2 100%);
+    color: #2b2b2b;
+}
+
+header.bg-dark{
+    background: linear-gradient(90deg, var(--leather-dark), var(--leather-medium));
+}
+
+h1, h2, h3, h4{
+    font-family: 'Georgia', serif;
+    color: var(--leather-dark);
+}
+
+.btn-primary{
+    background: var(--leather-medium);
+    border-color: var(--leather-medium);
+}
+
+.btn-outline-primary{
+    color: var(--leather-medium);
+    border-color: var(--leather-medium);
+}
+
+.badge.bg-success{
+    background: var(--leather-light);
+    color: #2b2b2b;
+}
+
+.card{
+    border-radius: 12px;
+}
+
+.navbar, .navbar-brand{
+    font-weight: 700;
+    letter-spacing: 0.6px;
+}
+
+/* Product card leather accent */
+.product-card:hover{
+    box-shadow: 0 12px 30px rgba(124,74,50,0.15);
+}
+
+/* Footer */
+footer{
+    background: linear-gradient(90deg, #2b2b2b, #111);
+}
+
+/* Small touch: artisan badge */
+.artisan-badge{
+    background: var(--accent);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+/* Improved hero/header visibility */
+header.bg-dark{
+    position: relative;
+    overflow: hidden;
+}
+
+header.bg-dark::after{
+    /* subtle dark overlay to improve text contrast */
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.35), rgba(0,0,0,0.25));
+    pointer-events: none;
+}
+
+header.bg-dark h1,
+header.bg-dark .display-4{
+    position: relative; /* above overlay */
+    color: #fff !important;
+    text-shadow: 0 6px 20px rgba(0,0,0,0.6);
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    animation: fadeInUp 700ms ease both;
+}
+
+header.bg-dark p.lead{
+    position: relative;
+    color: rgba(255,255,255,0.92) !important;
+    animation: fadeInUp 900ms ease both;
+}
+
+/* Product image animations */
+.main-product-image{
+    animation: floatIn 900ms ease both;
+}
+
+.product-card img.card-img-top{
+    transition: transform 0.45s cubic-bezier(.2,.9,.2,1), box-shadow 0.45s;
+    transform-origin: center center;
+}
+.product-card img.card-img-top:hover{
+    transform: translateY(-8px) scale(1.03) rotate(-0.5deg);
+    box-shadow: 0 18px 40px rgba(90,46,22,0.18);
+}
+
+/* subtle floating effect for highlighted product */
+@keyframes floatIn{
+    from { transform: translateY(18px) scale(.98); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes fadeInUp{
+    from { transform: translateY(12px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+}
+
+/* Decorative shoe badge animation */
+.artisan-badge{
+    transform-origin: center;
+    animation: pulse 1800ms ease-in-out infinite;
+}
+
+@keyframes pulse{
+    0%{ transform: scale(1); }
+    50%{ transform: scale(1.04); }
+    100%{ transform: scale(1); }
+}
+
+/* Accessibility: ensure focus outlines are visible */
+a:focus, button:focus, input:focus, select:focus {
+    outline: 3px solid rgba(212,164,90,0.25);
+    outline-offset: 3px;
+}

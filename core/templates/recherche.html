@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+ <!-- Header-->
+        <header class="bg-dark py-5">
+            <div class="container px-4 px-lg-5 my-5">
+                <div class="text-center text-white">
+                    <h1 class="display-4 fw-bolder">Recherche de Produits</h1>
+                    <p class="lead fw-normal text-white-50 mb-0">Résultats pour votre recherche "{{ query }}"</p>
+                </div>
+            </div>
+        </header>
+<div class="container px-4 px-lg-5 mt-5">
+    {% if results and results.exists %}
+        <div class="row gx-4 gx-lg-5 row-cols-2 row-cols-md-3 row-cols-xl-4 justify-content-center mt-3">
+            {% for product in results %}
+            <div class="col mb-5">
+                <div class="card h-100">
+                    {% if product.is_on_sale %}
+                    <div class="badge bg-light text-dark position-absolute" style="top: 0.5rem; right: 0.5rem">Sale !</div>
+                    {% endif %}
+                    <img class="card-img-top" src="{{ product.image.url }}" alt="{{ product.name }}" />
+                    <div class="card-body p-4">
+                        <div class="text-center">
+                            <h5 class="fw-bolder">{{ product.name }}</h5>
+                            {% if product.is_on_sale %}
+                            <span class="text-muted text-decoration-line-through">{{ product.original_price }} FCFA</span>
+                            {{ product.sale_price }} FCFA
+                            {% else %}
+                            {{ product.price }} FCFA
+                            {% endif %}
+                            <p class="mt-2">{{ product.description|truncatewords:15 }}</p>
+                        </div>
+                    </div>
+                    <div class="card-footer p-4 pt-0 border-top-0 bg-transparent">
+                        <div class="text-center">
+                            <a class="btn btn-outline-dark mt-auto" href="{% url 'product' product.id %}">Voir plus</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+       <div class="text-center my-5">
+  <div class="d-inline-block p-4 rounded shadow-sm">
+    <h5 class="fw-semibold mb-2">Aucun résultat trouvé</h5>
+    <p class="text-muted mb-3">
+      pour la recherche <strong>"{{ query }}"</strong>
+    </p>
+    <a href="{% url 'index' %}" class="btn px-4">
+      Voir tous les produits
+    </a>
+  </div>
+</div>
+
+<style>
+  .btn {
+    border: 2px solid #8B5E3C;
+    color: #8B5E3C;
+    font-weight: 600;
+    border-radius: 30px;
+    transition: 0.3s;
+  }
+  .btn:hover {
+    background: #8B5E3C;
+    color: white;
+  }
+</style>
+
+    {% endif %}
+</div>
+
+
+
+
+{% endblock %}

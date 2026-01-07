@@ -1,0 +1,448 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+ <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    
+
+</head>
+<div class="container py-5">
+
+    <div class="row g-4">
+        <!-- Galerie d'images -->
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="position-relative">
+                        <img src="{{ product.image.url }}" 
+                             class="img-fluid rounded-3 main-product-image" 
+                             alt="{{ product.name }}"
+                             id="mainProductImage">
+                        
+                        <!-- Badge promotionnel -->
+                        {% if product.is_on_sale %}
+                        <span class="position-absolute top-0 start-0 badge bg-danger m-3 fs-6 p-2">
+                            PROMO -{{ product.discount_percentage }}%
+                        </span>
+                        {% endif %}
+                        
+                        <!-- Badge nouveauté (optionnel - pourrait être conditionnel) -->
+                        {% if product.is_new %}
+                        <span class="position-absolute top-0 end-0 badge bg-success m-3 fs-6 p-2">
+                            NOUVEAU
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Miniatures d'images (optionnel - si vous avez plusieurs images) -->
+                    <div class="d-flex justify-content-center mt-3">
+                        <div class="product-thumbnails">
+                            <!-- Vous pourriez ajouter d'autres images ici -->
+                            <img src="{{ product.image.url }}" 
+                                 class="img-thumbnail mx-1 thumbnail-active" 
+                                 style="width: 80px; cursor: pointer;" 
+                                 onclick="changeImage(this.src)"
+                                 alt="{{ product.name }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Garanties et services -->
+            <div class="mt-4">
+                <div class="row g-2 text-center">
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <i class="fas fa-shipping-fast text-primary fs-4 mb-2"></i>
+                            <p class="mb-0 small fw-bold">Livraison express</p>
+                        </div>
+                    </div>
+              
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <i class="fas fa-undo-alt text-info fs-4 mb-2"></i>
+                            <p class="mb-0 small fw-bold">Retour gratuit*</p>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="p-3 border rounded-3 bg-light">
+                            <i class="fas fa-headset text-warning fs-4 mb-2"></i>
+                            <p class="mb-0 small fw-bold">Support 7j/7</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Détails du produit -->
+        <div class="col-lg-6">
+            <div class="card border-0">
+                <div class="card-body p-0">
+                    <h1 class="h2 fw-bold mb-2">{{ product.name }}</h1>
+                    
+                    <!-- Avis clients -->
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="text-warning me-2">
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star"></i>
+                            <i class="fas fa-star-half-alt"></i>
+                        </div>
+                        <span class="text-muted">(4.5/5 - 128 avis)</span>
+                        <span class="badge bg-success ms-3">En stock</span>
+                    </div>
+                    
+                    <!-- Prix -->
+                    <div class="mb-4">
+                        {% if product.is_on_sale %}
+                        <div class="d-flex align-items-center">
+                            <span class="h3 fw-bold text-danger me-3">{{ product.sale_price }} FCFA</span>
+                            <span class="h5 text-muted text-decoration-line-through">{{ product.original_price }} FCFA</span>
+                            <span class="badge bg-danger ms-2 fs-6">Économisez !</span>
+                        </div>
+                        {% else %}
+                        <div class="d-flex align-items-center">
+                            <span class="h3 fw-bold text-primary">{{ product.price }} FCFA</span>
+                           
+                        </div>
+                        {% endif %}
+                         <br/>ID: {{ product.id }}<br/>
+                        
+                        <p class="text-success small mt-1">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Frais de port offerts à partir de 50 000 FCFA
+                        </p>
+                    </div>
+                    
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Description</h5>
+                        <p class="card-text fs-5">{{ product.description }}</p>
+                        
+                        <!-- Caractéristiques (si disponibles) -->
+                        {% if product.features %}
+                        <ul class="list-unstyled mt-3">
+                            {% for feature in product.features %}
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                {{ feature }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Options d'achat -->
+                    <div class="mb-4">
+                        {% if product.variants %}
+                        <h5 class="fw-bold mb-3">Options disponibles</h5>
+                        <div class="d-flex flex-wrap gap-2 mb-3">
+                            {% for variant in product.variants %}
+                            <button type="button" class="btn btn-outline-primary variant-btn" data-variant-id="{{ variant.id }}">
+                                {{ variant.name }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        
+                        {% if product.is_shoe %}
+                        <div class="mb-3">
+                            <label for="sizeSelect" class="form-label fw-bold">Choisir la taille</label>
+                            <select id="sizeSelect" class="form-select" style="width:200px;">
+                                {% if product_sizes %}
+                                    <option value="">-- Sélectionnez --</option>
+                                    {% for s in product_sizes %}
+                                    <option value="{{ s.id }}" {% if s.stock|default:0 == 0 %}disabled{% endif %}>
+                                        {{ s.name }} {% if s.stock is not none %}({{ s.stock }} en stock){% endif %}
+                                    </option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="">Aucune taille disponible</option>
+                                {% endif %}
+                            </select>
+                            <div id="sizeError" class="form-text text-danger mt-1" style="display:none;"></div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Quantité -->
+                        <div class="row align-items-center mb-4">
+                            <div class="col-auto">
+                                <label for="quantity" class="form-label fw-bold">Quantité</label>
+                            </div>
+                            <div class="col-auto">
+                                <div class="input-group" style="width: 150px;">
+                                    <button class="btn btn-outline-secondary" type="button" id="decrement-qty">-</button>
+                                    <input type="number" class="form-control text-center" id="quantity" value="1" min="1" max="200">
+                                    <button class="btn btn-outline-primary" type="button" id="increment-qty">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Boutons d'action -->
+                        <div class="d-flex flex-column flex-md-row gap-3">
+                            <button type="button" class="btn btn-secondary btn-lg flex-fw d-flex align-items-center justify-content-center"
+                                   value="{{ product.id }}" id="addToCartBtn">
+
+                                <i class="fas fa-cart-plus me-2">  Ajouter au panier </i>
+                        
+                            </button>
+                            
+                            <button type="button" class="btn btn-outline-secondary btn-lg flex-fw d-flex align-items-center justify-content-center"
+                                    id="buyNowBtn">
+                                <i class="fas fa-bolt me-2"></i>
+                                Acheter maintenant
+                            </button>
+                            
+      
+                        </div>
+                        
+                        <!-- Paiement sécurisé -->
+                        <div class="mt-4 pt-3 border-top">
+                            <p class="small text-muted mb-2">
+                                <i class="fas fa-lock me-1"></i>
+                                Paiement 100% sécurisé
+                            </p>
+                            <div class="d-flex gap-2">
+                                <img src="{% static 'images/visa.png' %}" alt="Visa" height="24">
+                                <img src="{% static 'images/mastercard.png' %}" alt="Mastercard" height="24">
+                                <img src="{% static 'images/paypal.png' %}" alt="PayPal" height="24">
+                                <img src="{% static 'images/orange-money.png' %}" alt="Orange Money" height="24">
+                                <img src="{% static 'images/mtn-money.png' %}" alt="MTN Money" height="24">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Section détails supplémentaires -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="productTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="specs-tab" data-bs-toggle="tab" data-bs-target="#specs" type="button" role="tab">
+                                <i class="fas fa-list-alt me-2"></i>Spécifications
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab">
+                                <i class="fas fa-star me-2"></i>Avis clients (128)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="shipping-tab" data-bs-toggle="tab" data-bs-target="#shipping" type="button" role="tab">
+                                <i class="fas fa-truck me-2"></i>Livraison
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content p-3" id="productTabsContent">
+                        <div class="tab-pane fade show active" id="specs" role="tabpanel">
+                            <!-- Spécifications détaillées du produit -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless">
+                                        <tbody>
+                                            <tr>
+                                                <td class="fw-bold" style="width: 40%">Marque</td>
+                                                <td>{{ product.brand|default:"Notre marque" }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">Catégorie</td>
+                                                <td>{{ product.category.name }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="fw-bold">Modèle</td>
+                                                <td>{{ product.model|default:"Standard" }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="reviews" role="tabpanel">
+                            <!-- Avis clients -->
+                            <div class="d-flex align-items-center mb-4">
+                                <div class="me-4">
+                                    <div class="display-4 fw-bold text-primary">4.5</div>
+                                    <div class="text-warning">
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star"></i>
+                                        <i class="fas fa-star-half-alt"></i>
+                                    </div>
+                                    <small class="text-muted">Basé sur 128 avis</small>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <p class="mb-0 fst-italic">"{{ product.name }} a dépassé mes attentes. La qualité est exceptionnelle et la livraison a été ultra-rapide. Je recommande vivement !"</p>
+                                    <p class="text-end mb-0"><strong>- Amadou D.</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="tab-pane fade" id="shipping" role="tabpanel">
+                            <!-- Informations de livraison -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-shipping-fast text-primary me-2"></i>Options de livraison</h6>
+                                    <ul class="list-unstyled">
+                                        <li class="mb-2">
+                                            <strong>Standard :</strong> 3-5 jours ouvrables - 2 500 FCFA
+                                        </li>
+                                        <li class="mb-2">
+                                            <strong>Express :</strong> 1-2 jours ouvrables - 5 000 FCFA
+                                        </li>
+                                        <li>
+                                            <strong class="text-success">GRATUIT :</strong> Pour les commandes de plus de 50 000 FCFA
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-map-marker-alt text-primary me-2"></i>Zones de livraison</h6>
+                                    <p>Nous livrons dans toutes les régions de la Côte d'Ivoire. Les délais peuvent varier selon votre localisation.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Produits similaires -->
+    {% if related_products %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="fw-bold mb-4">Produits similaires</h3>
+            <div class="row g-4">
+                {% for related in related_products|slice:":4" %}
+                <div class="col-md-3 col-sm-6">
+                    <div class="card h-100 border-0 shadow-sm product-card">
+                        <img src="{{ related.image.url }}" class="card-img-top" alt="{{ related.name }}" style="height: 200px; object-fit: cover;">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ related.name|truncatechars:40 }}</h5>
+                            <div class="d-flex justify-content-between align-items-center">
+                                {% if related.is_on_sale %}
+                                <div>
+                                    <span class="fw-bold text-danger">{{ related.sale_price }} FCFA</span>
+                                    <small class="text-muted text-decoration-line-through d-block">{{ related.original_price }} FCFA</small>
+                                </div>
+                                {% else %}
+                                <span class="fw-bold">{{ related.price }} FCFA</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent border-0">
+                            <a href="{% url 'product_detail' related.slug %}" class="btn btn-outline-primary w-100">Voir le produit</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Scripts JavaScript pour l'interactivité "panier"--> 
+<script>
+
+//Vérif si bouton ajouter au panier cliqué
+$(document).on('click', '#addToCartBtn', function(e) {
+    e.preventDefault();
+    // require size selection for shoes (inline error)
+    if($('#sizeSelect').length){
+        var chosen = $('#sizeSelect').val();
+        if(!chosen){
+            $('#sizeError').text("Veuillez sélectionner une taille avant d'ajouter au panier.").show();
+            return;
+        } else {
+            $('#sizeError').hide().text('');
+        }
+    }
+ 
+    $.ajax({
+        type: "POST",
+        url: "{% url 'ajouter_au_panier' %}",
+        data: {
+            product_id: $('#addToCartBtn').val(),
+            qte: $('#quantity').val(),
+            size: $('#sizeSelect').length ? $('#sizeSelect').val() : '',
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+            action: 'post'
+        },
+        success: function(json) {
+            //console.log(json);
+
+            document.getElementById("cart_qte").textContent = json.qty;
+
+            // Afficher une notification de succès
+           // alert('Produit ajouté au panier avec succès !');
+        },
+        error: function(xhr, errmsg, err) {
+            try{
+                var j = JSON.parse(xhr.responseText);
+                if(j.error){
+                    if($('#sizeError').length) $('#sizeError').text(j.error).show();
+                    else alert(j.error);
+                } else {
+                    alert('Une erreur est survenue. Veuillez réessayer.');
+                }
+            }catch(e){ alert('Une erreur est survenue. Veuillez réessayer.'); }
+        }
+    });
+});
+
+</script>
+
+
+<!-- Styles CSS additionnels -->
+<style>
+.main-product-image {
+    transition: transform 0.3s ease;
+    cursor: zoom-in;
+}
+
+.main-product-image:hover {
+    transform: scale(1.02);
+}
+
+.thumbnail-active {
+    border-color: #0d6efd !important;
+    border-width: 2px !important;
+}
+
+.product-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+}
+
+.nav-tabs .nav-link {
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    border-bottom: 3px solid #0d6efd;
+    font-weight: bold;
+}
+
+.btn-lg {
+    padding: 0.75rem 1.5rem;
+}
+
+.badge {
+    font-size: 0.8em;
+}
+</style>
+{% endblock %}

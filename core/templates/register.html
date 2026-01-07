@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+ <!-- Header-->
+        <header class="bg-dark py-5">
+            <div class="container px-4 px-lg-5 my-5">
+                <div class="text-center text-white">
+                    <h1 class="display-4 fw-bolder">Créer un compte</h1>
+                    <p class="lead fw-normal text-white-50 mb-0">Créer un nouveau compte</p>
+                </div>
+            </div>
+        </header>
+        <div class="container">
+        <div class="row justify-content-center mt-5">
+            <div class="col-md-6">
+        
+<form method="post" action="{% url 'register' %}">
+
+    {% csrf_token %}    
+     
+{{ form.as_p }}
+
+<br/><br/>
+<div class="mb-3">
+<center>
+    <button type="submit" class="btn btn-primary" >S'inscrire</button>
+    <a href="{% url 'login' %}" class="btn btn-secondary">Se connecter</a>
+</center>
+</div>
+</div>
+</div>
+
+</form>
+<br/><br/>
+</div>
+{% endblock %}
+

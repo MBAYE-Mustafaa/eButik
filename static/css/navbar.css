@@ -1,0 +1,96 @@
+/* Navbar search form styles */
+.navbar-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+/* Make the input shrink correctly inside flex containers */
+.navbar-search .form-control {
+  flex: 1 1 auto;
+  min-width: 0; /* critical to allow shrinking */
+  max-width: 480px;
+  width: 100%;
+  transition: max-width 0.18s ease, box-shadow 0.18s ease, transform 0.12s ease;
+}
+
+/* Focus animation and improved accessibiity */
+.navbar-search .form-control:focus {
+  outline: none;
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.22rem rgba(13,110,253,0.18);
+  transform: translateY(-1px);
+  max-width: 560px; /* expand slightly on focus for easier typing */
+}
+.navbar-search .form-control:focus-visible {
+  outline: 2px solid rgba(13,110,253,0.12);
+}
+.navbar-search .btn:focus {
+  box-shadow: 0 0 0 0.18rem rgba(13,110,253,0.12);
+}
+
+/* Cart button: prevent it from growing and keep text optional on small screens */
+.navbar-search .cart-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  flex: 0 0 auto; /* do not grow or shrink */
+  max-width: 140px; /* limit width so it doesn't expand navbar */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: .45rem;
+  padding-right: .45rem;
+}
+.navbar-search .cart-btn .cart-text {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: .1rem;
+}
+.navbar-search .cart-btn .badge {
+  margin-left: .35rem;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-search .form-control { max-width: 240px; }
+}
+
+@media (max-width: 575.98px) {
+  .navbar-search {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .navbar-search .form-control {
+    max-width: none;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  .navbar-search .btn,
+  .navbar-search a.btn {
+    width: 100%;
+  }
+  /* hide cart text on very small screens to save space */
+  .navbar-search .cart-text { display: none !important; }
+  .navbar-search .cart-btn { max-width: none; }
+}
+
+/* Search results / cards tweaks (kept here for simplicity) */
+.recherche-results .card-img-top {
+  height: 190px;
+  object-fit: cover;
+}
+.recherche-results .card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.recherche-results .card-body {
+  flex: 1 1 auto;
+}
+.recherche-results .card-footer {
+  background: transparent;
+  border-top: 0;
+}
+.recherche-results h2 { font-size: 1.3rem; }
+.recherche-results small { font-size: 0.95rem; }

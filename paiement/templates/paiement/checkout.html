@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+
+<header class="bg-black py-5">
+  <div class="container px-4 px-lg-5 my-4">
+    <div class="text-center text-white">
+      <h1 class="display-6 fw-bold">Validation de la commande</h1>
+      <p class="lead text-white-50 mb-0">Veuillez remplir les informations ci-dessous pour valider votre commande</p>
+    </div>
+  </div>
+</header>
+
+
+<div class="container py-5" style="max-width:950px;">
+    <h1 class="text-center fw-bold mb-4"></h1>
+
+    {% if error %}
+        <div class="alert alert-danger text-center">{{ error }}</div>
+    {% endif %}
+
+    <div class="row g-4">
+
+        <!-- FORMULAIRE -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 rounded-4 p-4">
+                <form method="post" id="payment-form" novalidate>
+                    {% csrf_token %}
+
+                    <h4 class="fw-semibold mb-3">Méthode de paiement</h4>
+                    <div class="d-flex flex-column gap-2 mb-4">
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="card" checked> Carte bancaire
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="mobile"> Mobile Money (Orange, Wave, Free...)
+                        </label>
+                        <label class="payment-option">
+                            <input type="radio" name="payment_method" value="sepa"> Paiement SEPA (IBAN)
+                        </label>
+                    </div>
+
+                    <!-- INFOS CLIENT -->
+                    <h5 class="fw-semibold mb-3">Informations du client</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Prénom</label>
+                            <input class="form-control rounded-3" name="first_name" placeholder="Prénom" required value="{{ prefill.first_name|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Nom</label>
+                            <input class="form-control rounded-3" name="last_name" placeholder="Nom" required value="{{ prefill.last_name|default:'' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Email</label>
+                            <input class="form-control rounded-3" name="email" type="email" placeholder="ex: moustapha@email.com" required value="{{ prefill.email|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Téléphone</label>
+                            <input class="form-control rounded-3" name="phone" inputmode="tel" placeholder="+221 77 000 00 00" required value="{{ prefill.phone|default:'' }}">
+                        </div>
+                    </div>
+
+                    <!-- ADRESSE DE LIVRAISON -->
+                    <h5 class="fw-semibold mb-3">Adresse de livraison</h5>
+                    <div class="row g-3 mb-4">
+                        <div class="col-12">
+                            <label class="form-label">Adresse (ligne 1)</label>
+                            <input class="form-control rounded-3" name="address_line" placeholder="Numéro, rue, quartier" required value="{{ prefill.address_line|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Ville</label>
+                            <input class="form-control rounded-3" name="city" placeholder="Dakar" required value="{{ prefill.city|default:'' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Code postal</label>
+                            <input class="form-control rounded-3" name="postal_code" placeholder="CP" value="{{ prefill.postal_code|default:'' }}">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Pays</label>
+                            <input class="form-control rounded-3" name="country" placeholder="Sénégal" required value="{{ prefill.country|default:'' }}">
+                        </div>
+                    </div>
+
+                    <!-- Pas de suggestion de création de compte; commande possible sans compte -->
+
+                    <!-- CARTE -->
+                    <div id="card-fields">
+                        {% if not stripe_pub_key %}
+                            <div class="alert alert-warning">Aucun Stripe configuré — mode test activé. Les données de carte ne seront pas traitées réellements.</div>
+                            <div id="fallback-card" class="mb-3">
+                             <h5 class="fw-semibold mb-3">Paiement par carte</h5>
+
+                             <div class="mb-3">
+                            <label class="form-label">Nom sur la carte</label>
+                            <input class="form-control rounded-3" name="card_name" placeholder="Nom complet" required value="{{ prefill.first_name|default:'' }} {{ prefill.last_name|default:'' }}">
+                        </div>
+                                <label class="form-label">Numéro de carte (à développer)</label>
+                                <input class="form-control rounded-3" name="card_number_fallback" placeholder="4242 4242 4242 4242">
+                                <div class="row mt-2">
+                                    <div class="col-6"><input class="form-control rounded-3" name="card_expiry_fallback" placeholder="MM/AA"></div>
+                                    <div class="col-6"><input class="form-control rounded-3" name="card_cvc_fallback" placeholder="CVC"></div>
+                                </div>
+                            </div>
+                        {% endif %}
+                       
+                
+                        <p class="text-muted small mt-2">
+                            Paiement sécurisé via Stripe. (Nota à faire via Stripe Elements plus tard)
+                        </p>
+                    </div>
+
+                    <!-- MOBILE MONEY -->
+                    <div id="mobile-fields" style="display:none;">
+                        <h5 class="fw-semibold mb-3">Mobile Money</h5>
+                        <div class="mb-3">
+                            <label class="form-label">Opérateur</label>
+                            <select name="mobile_provider" class="form-select rounded-3">
+                                <option value="orange">Orange Money</option>
+                                <option value="wave">Wave</option>
+                                <option value="free">Free Money</option>
+                                <option value="other">Autre</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Numéro téléphone</label>
+                            <input class="form-control rounded-3" name="mobile_phone" placeholder="+221 77 000 00 00" value="{{ prefill.phone|default:'' }}">
+                        </div>
+                        <p class="text-muted small">
+                            Tu recevras une demande de confirmation après validation.
+                        </p>
+                    </div>
+
+                    <!-- SEPA / IBAN -->
+                    <div id="sepa-fields" style="display:none;">
+                        <h5 class="fw-semibold mb-3">Paiement SEPA</h5>
+                        <div class="mb-3">
+                            <label class="form-label">IBAN</label>
+                            <input class="form-control rounded-3" name="iban" placeholder="ex: FR76 3000 6000 0112 3456 7890 189">
+                        </div>
+                        <p class="text-muted small">
+                            Paiement SEPA (débit bancaire européen).
+                        </p>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark w-100 rounded-3 py-2 mt-4 fw-bold">
+                        Payer maintenant
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- RECAP PANIER -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4">
+                <h4 class="fw-semibold text-center">Récapitulatif de votre commande</h4>
+                <hr>
+
+                {% if panier.total_items %}
+                    <p><strong>Nombre d’articles :</strong> {{ panier.total_items }}</p>
+
+                    <ul class="list-group rounded-3 mb-3">
+                        {% for prod in panier.get_prods %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>{{ prod.name }} &times; {{ prod.qte }}</span>
+                                <strong>{{ prod.price }} FCFA</strong>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="text-end">
+                        <h5 class="fw-bold">Total : {{ total_display }} FCFA</h5>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Votre panier est vide.</p>
+                {% endif %}
+
+                <!-- Cette page prépare le paiement. Une vraie passerelle est requise pour transactions réelles. -->
+        
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.payment-option {
+    background:#f8f9fa;
+    padding:12px;
+    border-radius:8px;
+    border:1px solid #eaeaea;
+    cursor:pointer;
+    transition:0.2s;
+}
+.payment-option:hover {
+    border-color:#000;
+}
+.payment-option input {
+    margin-right:8px;
+}
+</style>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function toggleFields(){
+    const method = document.querySelector('input[name="payment_method"]:checked').value;
+    document.getElementById('card-fields').style.display = method === 'card' ? 'block' : 'none';
+    document.getElementById('mobile-fields').style.display = method === 'mobile' ? 'block' : 'none';
+    document.getElementById('sepa-fields').style.display = method === 'sepa' ? 'block' : 'none';
+}
+
+document.querySelectorAll('input[name="payment_method"]').forEach(el => {
+    el.addEventListener('change', toggleFields);
+});
+toggleFields();
+
+// Stripe
+const stripePub = "{{ stripe_pub_key|default:'' }}";
+        if(stripePub){
+            const stripe = Stripe(stripePub);
+            const elements = stripe.elements();
+            const card = elements.create('card');
+            card.mount('#card-element');
+
+            // Affiche les erreurs de Stripe Elements dans la div #card-errors
+            card.on('change', function(event){
+                var displayError = document.getElementById('card-errors');
+                if(displayError){
+                    displayError.textContent = event.error ? event.error.message : '';
+                }
+            });
+
+            // Après paiement réussi, on enregistre la commande côté serveur
+            function submitOrderToServer(paymentMethod, reference){
+                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const formData = new FormData();
+                // client info
+                ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){
+                    formData.append(k, document.querySelector('[name="'+k+'"]').value || '');
+                });
+                formData.append('payment_method', paymentMethod);
+                formData.append('payment_reference', reference || '');
+
+                return fetch('/paiement/complete-order/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: formData
+                }).then(r => r.json());
+            }
+
+            // override the confirmCardPayment flow to persist order after success
+            const originalForm = document.getElementById('payment-form');
+            originalForm.addEventListener('submit', function(e){
+                const method = document.querySelector('input[name="payment_method"]:checked').value;
+                if(method !== 'card') return; // handled elsewhere
+
+                e.preventDefault();
+
+                fetch('/paiement/create-payment-intent/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, credentials: 'same-origin' })
+                .then(r => r.json()).then(function(data){
+                    if(data.error){ alert('Erreur: '+data.error); return; }
+                    const clientSecret = data.clientSecret;
+                    const cardName = document.querySelector('[name="card_name"]').value;
+                    stripe.confirmCardPayment(clientSecret, {
+                        payment_method: { card: card, billing_details: { name: cardName } }
+                    }).then(function(result){
+                        var displayError = document.getElementById('card-errors');
+                        if(result.error){
+                            if(displayError) displayError.textContent = result.error.message;
+                            return;
+                        }
+                        if(result.paymentIntent && result.paymentIntent.status === 'succeeded'){
+                            submitOrderToServer('card', result.paymentIntent.id).then(function(json){
+                                if(json.error) { alert('Erreur en enregistrant la commande: '+json.error); return; }
+                                window.location = '/paiement/paiement_success/';
+                            }).catch(function(){ alert('Erreur réseau lors de l’enregistrement de la commande'); });
+                        }
+                    });
+                }).catch(function(){ alert('Erreur réseau lors de la création du PaymentIntent'); });
+                    }, { once: true });
+                }
+
+                // Gestion globale pour Mobile Money et SEPA
+                document.getElementById('payment-form').addEventListener('submit', function(e){
+                    const method = document.querySelector('input[name="payment_method"]:checked').value;
+                    if(method === 'mobile'){
+                        e.preventDefault();
+                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        const data = new FormData();
+                        data.append('mobile_provider', document.querySelector('[name="mobile_provider"]').value || '');
+                        data.append('mobile_phone', document.querySelector('[name="mobile_phone"]').value || '');
+
+                        fetch('/paiement/mobile-request/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: data })
+                        .then(r => r.json()).then(function(json){
+                            if(json.error){ alert('Erreur: '+json.error); return; }
+                            // enregistrer la commande côté serveur en pending
+                            const fd = new FormData();
+                            ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){ fd.append(k, document.querySelector('[name="'+k+'"]').value || ''); });
+                            fd.append('payment_method','mobile'); fd.append('payment_reference', json.reference || '');
+
+                            fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
+                            .then(r => r.json()).then(function(j){ if(j.error) alert('Erreur en enregistrant la commande: '+j.error); else window.location='/paiement/paiement_success/'; })
+                            .catch(function(){ alert('Erreur lors de l enregistrement de la commande'); });
+                        }).catch(function(){ alert('Erreur réseau lors de la requête mobile-money'); });
+                    }
+
+                    if(method === 'sepa'){
+                        e.preventDefault();
+                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        const fd = new FormData();
+                        ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){ fd.append(k, document.querySelector('[name="'+k+'"]').value || ''); });
+                        fd.append('payment_method','sepa'); fd.append('payment_reference', document.querySelector('[name="iban"]').value || '');
+
+                        fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
+                        .then(r => r.json()).then(function(j){ if(j.error) alert('Erreur: '+j.error); else window.location='/paiement/paiement_success/'; })
+                        .catch(function(){ alert('Erreur réseau'); });
+                    }
+                });
+        </script>
+
+{% endblock %}

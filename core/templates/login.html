@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+
+{% block content %}
+
+
+ <!-- Header-->
+        <header class="bg-dark py-5">
+            <div class="container px-4 px-lg-5 my-5">
+                <div class="text-center text-white">
+                    <h1 class="display-4 fw-bolder">Connection...</h1>
+                    <p class="lead fw-normal text-white-50 mb-0">Connectez-vous à votre compte</p>
+                </div>
+            </div>
+        </header>
+<form method="post" action="{% url 'login' %}">
+
+    {% csrf_token %}    
+     
+<div class="container px-4 px-lg-5 mt-5">
+
+    <div class="row gx-4 gx-lg-5 row-cols-1 row-cols-md-2 row-cols-xl-2 justify-content-center">
+        <div class="col mb-5">
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <div class="text-center">
+                        <form method="post" action="{% url 'login' %}"> 
+
+                            {% csrf_token %}
+                            
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Nom d'utilisateur ou N° Téléphone</label>
+                                <input type="text" class="form-control" id="username" name="username" required  placeholder="Entrez votre nom d'utilisateur ou N° Téléphone">
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Mot de passe</label>
+                                <input type="password" class="form-control" id="password" name="password" required placeholder="Entrez votre mot de passe">
+                            </div>
+                            <button type="submit" class="btn btn-secondary">Se connecter</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+            </div>
+        </div>
+
+</form>
+
+{% endblock %}
+

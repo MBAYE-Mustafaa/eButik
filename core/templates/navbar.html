@@ -1,0 +1,60 @@
+<!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container px-4 px-lg-5">
+                <a class="navbar-brand" href="{% url 'index' %}">Ngaay Cuir</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'index' %}">Accueil</a></li>
+
+                        <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">A propos</a></li>
+
+
+
+                        {% if user.is_authenticated %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Profil</a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{% url 'update_user' %}">Profil utilisateur</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="{% url 'update_info' %}">Infos utilisateur</a></li>
+                                
+                            </ul>
+                        </li>
+                        
+                        {% else %}
+                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Inscription</a></li>
+                        {% endif %}
+
+
+                        
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Catégories</a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{% url 'category_resume' %}">Tous les Articles</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="{% url 'category' 'Homme' %}">Homme</a></li>
+                                <li><a class="dropdown-item" href="{% url 'category' 'Femme' %}">Femme</a></li>
+                                <li><a class="dropdown-item" href="{% url 'category' 'Enfants' %}">Enfants</a></li>
+                                <li><a class="dropdown-item" href="{% url 'category' 'Accessoires' %}">Accessoires</a></li>
+                                <li><a class="dropdown-item" href="{% url 'category' 'Nouveautés' %}">Nouveautés</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    <form class="d-flex align-items-center navbar-search" method="get" action="{% url 'recherche' %}">
+                        <input class="form-control me-2" type="search" placeholder="Rechercher produit" aria-label="Search" id="search-input" name="q" value="{% if request.GET.q %}{{ request.GET.q }}{% endif %}">
+                        <button class="btn btn-outline-dark" type="submit" aria-label="Lancer la recherche">
+                            <i class="bi-search"></i>
+                        </button>
+                        <a href="{% url 'resume_panier' %}" class="btn btn-outline-dark ms-2 ms-md-3 cart-btn" role="button" aria-label="Voir le panier">
+                            <i class="bi-cart-fill me-1" aria-hidden="true"></i>
+                            <span class="cart-text d-none d-sm-inline"> <strong>Panier</strong></span>
+                            <span class="badge bg-dark text-white ms-2 rounded-pill" id="cart_qte"> {{ panier.total_items }} </span>
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </nav>
