@@ -8,4 +8,5 @@ urlpatterns = [
   path('create-payment-intent/', views.create_payment_intent, name='create_payment_intent'),
   path('mobile-request/', views.mobile_request, name='mobile_request'),
     path('complete-order/', views.complete_order, name='complete_order'),
-  ]
+    path('webhook/', views.stripe_webhook, name='stripe_webhook'),
+]

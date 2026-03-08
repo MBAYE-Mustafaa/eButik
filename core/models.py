@@ -111,13 +111,22 @@ class ProductSize(models.Model):
 
 # Order and OrderItem models to handle customer orders
 class Order(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('paid', 'Paid'),
+        ('cancelled', 'Cancelled'),
+    ]
+
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     products = models.ManyToManyField(Product, through='OrderItem')
     order_date = models.DateTimeField(default=datetime.datetime.now)
     total_amount = models.DecimalField(max_digits=10, decimal_places=0)
     address = models.TextField(blank=True, null=True)
-    status = models.BooleanField(default=False)
 
+    # payment tracking
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    payment_method = models.CharField(max_length=20, blank=True, null=True)
+    payment_reference = models.CharField(max_length=200, blank=True, null=True)
 
     def __str__(self):
         return f"Order {self.id} - {self.customer}"

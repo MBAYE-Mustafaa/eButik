@@ -1,10 +1,15 @@
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.conf import settings
 from decimal import Decimal
+from django.db import transaction
 
 from panier.panier import Panier
+
+import json
+
+# stripe library is optional; imported inside functions if configured
 
 
 # Page affichée après un paiement (simulé)
@@ -169,43 +174,46 @@ def complete_order(request):
                 ps = None
         total += (price + extra) * qte
 
-    # Crée la commande
-    order = Order.objects.create(
-        customer=customer,
-        total_amount=total,
-        address=f"{address_line}\n{city}\n{postal_code}\n{country}",
-        status=(True if payment_method == 'card' else False)
-    )
+    # Crée la commande et les lignes dans une transaction
+    with transaction.atomic():
+        order = Order.objects.create(
+            customer=customer,
+            total_amount=total,
+            address=f"{address_line}\n{city}\n{postal_code}\n{country}",
+            status='paid' if payment_method in ['mobile','sepa'] else 'pending',
+            payment_method=payment_method,
+            payment_reference=payment_reference
+        )
 
-    # Create order items and decrement stock
-    for p in products:
-        qte = int(p.qte)
-        size_name = ''
-        extra = Decimal('0')
-        ps = None
-        if getattr(p, 'selected_size', None):
+        # Create order items and decrement stock
+        for p in products:
+            qte = int(p.qte)
+            size_name = ''
+            extra = Decimal('0')
+            ps = None
+            if getattr(p, 'selected_size', None):
+                try:
+                    ps = ProductSize.objects.get(product=p, size_id=int(p.selected_size))
+                    size_name = ps.size.name
+                    if ps.extra_price:
+                        extra = Decimal(ps.extra_price)
+                except Exception:
+                    ps = None
+
+            OrderItem.objects.create(order=order, product=p, quantity=qte, size=size_name)
+
+            # decrement stock
             try:
-                ps = ProductSize.objects.get(product=p, size_id=int(p.selected_size))
-                size_name = ps.size.name
-                if ps.extra_price:
-                    extra = Decimal(ps.extra_price)
+                if ps:
+                    if ps.stock >= qte:
+                        ps.stock = ps.stock - qte
+                        ps.save()
+                else:
+                    if p.stock >= qte:
+                        p.stock = p.stock - qte
+                        p.save()
             except Exception:
-                ps = None
-
-        OrderItem.objects.create(order=order, product=p, quantity=qte, size=size_name)
-
-        # decrement stock
-        try:
-            if ps:
-                if ps.stock >= qte:
-                    ps.stock = ps.stock - qte
-                    ps.save()
-            else:
-                if p.stock >= qte:
-                    p.stock = p.stock - qte
-                    p.save()
-        except Exception:
-            pass
+                pass
 
     # vider le panier
     panier.clear()

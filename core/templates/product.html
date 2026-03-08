@@ -400,6 +400,50 @@ $(document).on('click', '#addToCartBtn', function(e) {
     });
 });
 
+// handler for buy now button: add to cart then redirect to cart page
+$(document).on('click', '#buyNowBtn', function(e) {
+    e.preventDefault();
+    // require size selection for shoes (inline error)
+    if($('#sizeSelect').length){
+        var chosen = $('#sizeSelect').val();
+        if(!chosen){
+            $('#sizeError').text("Veuillez sélectionner une taille avant d'ajouter au panier.").show();
+            return;
+        } else {
+            $('#sizeError').hide().text('');
+        }
+    }
+
+    // reuse ajax logic to add to cart
+    $.ajax({
+        type: "POST",
+        url: "{% url 'ajouter_au_panier' %}",
+        data: {
+            product_id: $('#addToCartBtn').val(),
+            qte: $('#quantity').val(),
+            size: $('#sizeSelect').length ? $('#sizeSelect').val() : '',
+            csrfmiddlewaretoken: '{{ csrf_token }}',
+            action: 'post'
+        },
+        success: function(json) {
+            document.getElementById("cart_qte").textContent = json.qty;
+            // redirect user to cart page
+            window.location.href = "{% url 'resume_panier' %}";
+        },
+        error: function(xhr, errmsg, err) {
+            try{
+                var j = JSON.parse(xhr.responseText);
+                if(j.error){
+                    if($('#sizeError').length) $('#sizeError').text(j.error).show();
+                    else alert(j.error);
+                } else {
+                    alert('Une erreur est survenue. Veuillez réessayer.');
+                }
+            }catch(e){ alert('Une erreur est survenue. Veuillez réessayer.'); }
+        }
+    });
+});
+
 </script>
 
 
