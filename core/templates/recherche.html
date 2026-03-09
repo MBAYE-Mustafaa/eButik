@@ -22,7 +22,11 @@
                     {% if product.is_on_sale %}
                     <div class="badge bg-light text-dark position-absolute" style="top: 0.5rem; right: 0.5rem">Sale !</div>
                     {% endif %}
+                    {% if product.image %}
                     <img class="card-img-top" src="{{ product.image.url }}" alt="{{ product.name }}" />
+                    {% else %}
+                    <img class="card-img-top" src="/static/default-product.jpg" alt="{{ product.name }}" />
+                    {% endif %}
                     <div class="card-body p-4">
                         <div class="text-center">
                             <h5 class="fw-bolder">{{ product.name }}</h5>
