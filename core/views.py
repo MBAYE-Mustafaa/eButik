@@ -43,8 +43,25 @@ def update_info(request):
         user_form = UpdateUserForm(request.POST, instance=user)
         profile_form = UserInfoForm(request.POST, instance=profil)
         if user_form.is_valid() and profile_form.is_valid():
+            # Get customer before saving to use old email
+            old_email = user.email
             user_form.save()
             profile_form.save()
+            # Update Customer if exists linked to user or by old email
+            try:
+                from .models import Customer
+                customer = getattr(user, 'customer', None)
+                if not customer:
+                    customer = Customer.objects.filter(email=old_email).first()
+                if customer:
+                    customer.first_name = user.first_name
+                    customer.last_name = user.last_name
+                    customer.telephone = profil.telephone
+                    customer.address = f"{profil.adresse}, {profil.ville}, {profil.codePostale}, {profil.pays}"
+                    customer.email = user.email
+                    customer.save()
+            except Exception:
+                pass  # Ignore if Customer model not available or error
             messages.success(request, "Infos modifiées avec succès !")
             return redirect('update_info')
     else:

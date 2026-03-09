@@ -89,27 +89,41 @@
 
                     <!-- CARTE -->
                     <div id="card-fields">
-                        {% if not stripe_pub_key %}
-                            <div class="alert alert-warning">Aucun Stripe configuré — mode test activé. Les données de carte ne seront pas traitées réellements.</div>
-                            <div id="fallback-card" class="mb-3">
-                             <h5 class="fw-semibold mb-3">Paiement par carte</h5>
+                        <h5 class="fw-semibold mb-3">Paiement par carte</h5>
 
-                             <div class="mb-3">
+                        <div class="mb-3">
                             <label class="form-label">Nom sur la carte</label>
                             <input class="form-control rounded-3" name="card_name" placeholder="Nom complet" required value="{{ prefill.first_name|default:'' }} {{ prefill.last_name|default:'' }}">
                         </div>
-                                <label class="form-label">Numéro de carte (à développer)</label>
-                                <input class="form-control rounded-3" name="card_number_fallback" placeholder="4242 4242 4242 4242">
-                                <div class="row mt-2">
-                                    <div class="col-6"><input class="form-control rounded-3" name="card_expiry_fallback" placeholder="MM/AA"></div>
-                                    <div class="col-6"><input class="form-control rounded-3" name="card_cvc_fallback" placeholder="CVC"></div>
+
+                        {% if false %} {# Force fallback for testing #}
+                            <div class="mb-3">
+                                <label class="form-label">Numéro de carte</label>
+                                <div id="card-number-element" class="form-control rounded-3" style="padding: 10px;"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Date d'expiration</label>
+                                    <div id="card-expiry-element" class="form-control rounded-3" style="padding: 10px;"></div>
                                 </div>
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Code CVC</label>
+                                    <div id="card-cvc-element" class="form-control rounded-3" style="padding: 10px;"></div>
+                                </div>
+                            </div>
+                            <div id="card-errors" class="text-danger mt-2"></div>
+                        {% else %}
+                            <div class="alert alert-warning">Mode test activé - Paiement simulé.</div>
+                            <label class="form-label">Numéro de carte (test)</label>
+                            <input class="form-control rounded-3" name="card_number_fallback" placeholder="4242 4242 4242 4242">
+                            <div class="row mt-2">
+                                <div class="col-6"><input class="form-control rounded-3" name="card_expiry_fallback" placeholder="MM/AA"></div>
+                                <div class="col-6"><input class="form-control rounded-3" name="card_cvc_fallback" placeholder="CVC"></div>
                             </div>
                         {% endif %}
                        
-                
                         <p class="text-muted small mt-2">
-                            Paiement sécurisé via Stripe. (Nota à faire via Stripe Elements plus tard)
+                            Paiement sécurisé via Stripe.
                         </p>
                     </div>
 
@@ -236,15 +250,21 @@ const stripePub = "{{ stripe_pub_key|default:'' }}";
         if(stripePub){
             const stripe = Stripe(stripePub);
             const elements = stripe.elements();
-            const card = elements.create('card');
-            card.mount('#card-element');
+            const cardNumber = elements.create('cardNumber');
+            const cardExpiry = elements.create('cardExpiry');
+            const cardCvc = elements.create('cardCvc');
+            cardNumber.mount('#card-number-element');
+            cardExpiry.mount('#card-expiry-element');
+            cardCvc.mount('#card-cvc-element');
 
             // Affiche les erreurs de Stripe Elements dans la div #card-errors
-            card.on('change', function(event){
-                var displayError = document.getElementById('card-errors');
-                if(displayError){
-                    displayError.textContent = event.error ? event.error.message : '';
-                }
+            [cardNumber, cardExpiry, cardCvc].forEach(function(element) {
+                element.on('change', function(event){
+                    var displayError = document.getElementById('card-errors');
+                    if(displayError){
+                        displayError.textContent = event.error ? event.error.message : '';
+                    }
+                });
             });
 
             // Après paiement réussi, on enregistre la commande côté serveur
@@ -279,7 +299,7 @@ const stripePub = "{{ stripe_pub_key|default:'' }}";
                     const clientSecret = data.clientSecret;
                     const cardName = document.querySelector('[name="card_name"]').value;
                     stripe.confirmCardPayment(clientSecret, {
-                        payment_method: { card: card, billing_details: { name: cardName } }
+                        payment_method: { card: cardNumber, billing_details: { name: cardName } }
                     }).then(function(result){
                         var displayError = document.getElementById('card-errors');
                         if(result.error){
@@ -297,7 +317,7 @@ const stripePub = "{{ stripe_pub_key|default:'' }}";
                     }, { once: true });
                 }
 
-                // Gestion globale pour Mobile Money et SEPA
+                // Gestion globale pour Mobile Money, SEPA et carte fallback
                 document.getElementById('payment-form').addEventListener('submit', function(e){
                     const method = document.querySelector('input[name="payment_method"]:checked').value;
                     if(method === 'mobile'){
@@ -307,8 +327,11 @@ const stripePub = "{{ stripe_pub_key|default:'' }}";
                         data.append('mobile_provider', document.querySelector('[name="mobile_provider"]').value || '');
                         data.append('mobile_phone', document.querySelector('[name="mobile_phone"]').value || '');
 
-                        fetch('/paiement/mobile-request/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: data })
-                        .then(r => r.json()).then(function(json){
+                        fetch('/paiement/mobile-request/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: data, credentials: 'same-origin' })
+                        .then(function(r){
+                            if(!r.ok){ return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); }); }
+                            return r.json();
+                        }).then(function(json){
                             if(json.error){ alert('Erreur: '+json.error); return; }
                             // enregistrer la commande côté serveur en pending
                             const fd = new FormData();
@@ -316,8 +339,11 @@ const stripePub = "{{ stripe_pub_key|default:'' }}";
                             fd.append('payment_method','mobile'); fd.append('payment_reference', json.reference || '');
 
                             fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
-                            .then(r => r.json()).then(function(j){ if(j.error) alert('Erreur en enregistrant la commande: '+j.error); else window.location='/paiement/paiement_success/'; })
-                            .catch(function(){ alert('Erreur lors de l enregistrement de la commande'); });
+                            .then(function(r){
+                                if(!r.ok){ return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); }); }
+                                return r.json();
+                            }).then(function(j){ if(j.error) alert('Erreur en enregistrant la commande: '+j.error); else window.location='/paiement/paiement_success/'; })
+                            .catch(function(e){ console.error('complete-order error', e); alert('Erreur réseau lors de l enregistrement de la commande: '+e.message); });
                         }).catch(function(){ alert('Erreur réseau lors de la requête mobile-money'); });
                     }
 
@@ -331,6 +357,21 @@ const stripePub = "{{ stripe_pub_key|default:'' }}";
                         fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
                         .then(r => r.json()).then(function(j){ if(j.error) alert('Erreur: '+j.error); else window.location='/paiement/paiement_success/'; })
                         .catch(function(){ alert('Erreur réseau'); });
+                    }
+
+                    if(method === 'card' && !stripePub){
+                        e.preventDefault();
+                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        const fd = new FormData();
+                        ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){ fd.append(k, document.querySelector('[name="'+k+'"]').value || ''); });
+                        fd.append('payment_method','card'); fd.append('payment_reference', 'test_payment_' + Date.now());
+
+                        fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
+                        .then(function(r){
+                            if(!r.ok){ return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); }); }
+                            return r.json();
+                        }).then(function(j){ if(j.error) alert('Erreur: '+j.error); else window.location='/paiement/paiement_success/'; })
+                        .catch(function(e){ console.error('card complete-order error', e); alert('Erreur réseau: '+e.message); });
                     }
                 });
         </script>

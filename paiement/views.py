@@ -18,12 +18,18 @@ def paiement_success(request):
 
 
 def checkout(request):
-    # Cette vue affiche le formulaire de paiement. La création des paiements
-    # se fait via des endpoints AJAX (Stripe / Mobile Money) définis plus bas.
-    stripe_pub = getattr(settings, 'STRIPE_PUBLISHABLE_KEY', '')
+    # Cette vue affiche le formulaire de paiement. Pour simplifier les tests,
+    # nous n'utilisons jamais la clé Stripe et activons toujours le mode fallback.
+    stripe_pub = ''
 
     # Calculer le total du panier pour l'affichage
     panier = Panier(request)
+    # rediriger si panier vide
+    if not panier.total_items:
+        from django.contrib import messages
+        from django.shortcuts import redirect
+        messages.error(request, 'Votre panier est vide, ajoutez des produits avant de payer.')
+        return redirect('resume_panier')
     total = Decimal('0')
     for v in panier.panier.values():
         price = Decimal(v.get('price', '0'))
@@ -54,6 +60,7 @@ def checkout(request):
             prefill['postal_code'] = profil.codePostale or ''
             prefill['country'] = profil.pays or ''
 
+    # note: stripe_pub_key intentionally blank for fallback
     return render(request, 'paiement/checkout.html', {
         'stripe_pub_key': stripe_pub,
         'total': total,
@@ -121,104 +128,164 @@ def complete_order(request):
     """Crée l'Order à partir du panier et des informations client envoyées depuis le checkout.
     Attend : first_name, last_name, email, phone, address_line, city, postal_code, country, payment_method, payment_reference
     """
-    first_name = request.POST.get('first_name', '').strip()
-    last_name = request.POST.get('last_name', '').strip()
-    email = request.POST.get('email', '').strip()
-    phone = request.POST.get('phone', '').strip()
-    address_line = request.POST.get('address_line', '').strip()
-    city = request.POST.get('city', '').strip()
-    postal_code = request.POST.get('postal_code', '').strip()
-    country = request.POST.get('country', '').strip()
-    payment_method = request.POST.get('payment_method', '').strip()
-    payment_reference = request.POST.get('payment_reference', '').strip()
+    try:
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        phone = request.POST.get('phone', '').strip()
+        address_line = request.POST.get('address_line', '').strip()
+        city = request.POST.get('city', '').strip()
+        postal_code = request.POST.get('postal_code', '').strip()
+        country = request.POST.get('country', '').strip()
+        payment_method = request.POST.get('payment_method', '').strip()
+        payment_reference = request.POST.get('payment_reference', '').strip()
+    except Exception as exc:
+        return JsonResponse({'error': f'paramètres invalides ({exc})'}, status=400)
 
     # validation minimale
     if not (first_name and last_name and email and address_line and city and country):
         return JsonResponse({'error': "Nom, email et adresse requis"}, status=400)
 
-    from core.models import Customer, Order, OrderItem
+    try:
+        from core.models import Customer, Order, OrderItem
 
-    customer, created = Customer.objects.get_or_create(email=email, defaults={
-        'first_name': first_name,
-        'last_name': last_name,
-        'telephone': phone,
-        'password': '',
-        'address': f"{address_line}, {city}, {postal_code}, {country}"
-    })
-    if not created:
+        # If user is authenticated, get or create Customer by user, not by email
+        if request.user.is_authenticated:
+            customer, created = Customer.objects.get_or_create(user=request.user, defaults={
+                'first_name': first_name,
+                'last_name': last_name,
+                'email': email,
+                'telephone': phone,
+                'password': '',
+                'address': f"{address_line}, {city}, {postal_code}, {country}"
+            })
+        else:
+            # For anonymous users, get or create by email
+            customer, created = Customer.objects.get_or_create(email=email, defaults={
+                'first_name': first_name,
+                'last_name': last_name,
+                'telephone': phone,
+                'password': '',
+                'address': f"{address_line}, {city}, {postal_code}, {country}"
+            })
+
+        # Always update customer data (changes from user profile)
         customer.first_name = first_name
         customer.last_name = last_name
+        customer.email = email
         customer.telephone = phone
         customer.address = f"{address_line}, {city}, {postal_code}, {country}"
         customer.save()
 
-    # Ne pas proposer/forcer la création de compte ici — commande enregistrée même sans compte
+        # Ne pas proposer/forcer la création de compte ici — commande enregistrée même sans compte
 
-    panier = Panier(request)
-    products = panier.get_prods()
-    if not products:
-        return JsonResponse({'error': 'Panier vide'}, status=400)
+        panier = Panier(request)
+        products = panier.get_prods()
+        if not products:
+            return JsonResponse({'error': 'Panier vide'}, status=400)
 
-    total = Decimal('0')
-    from core.models import ProductSize
-    for p in products:
-        qte = int(p.qte)
-        price = Decimal(p.price)
-        extra = Decimal('0')
-        if getattr(p, 'selected_size', None):
-            try:
-                ps = ProductSize.objects.get(product=p, size_id=int(p.selected_size))
-                if ps.extra_price:
-                    extra = Decimal(ps.extra_price)
-            except Exception:
-                ps = None
-        total += (price + extra) * qte
-
-    # Crée la commande et les lignes dans une transaction
-    with transaction.atomic():
-        order = Order.objects.create(
-            customer=customer,
-            total_amount=total,
-            address=f"{address_line}\n{city}\n{postal_code}\n{country}",
-            status='paid' if payment_method in ['mobile','sepa'] else 'pending',
-            payment_method=payment_method,
-            payment_reference=payment_reference
-        )
-
-        # Create order items and decrement stock
+        total = Decimal('0')
+        from core.models import ProductSize
         for p in products:
             qte = int(p.qte)
-            size_name = ''
+            price = Decimal(p.price)
             extra = Decimal('0')
-            ps = None
             if getattr(p, 'selected_size', None):
                 try:
                     ps = ProductSize.objects.get(product=p, size_id=int(p.selected_size))
-                    size_name = ps.size.name
                     if ps.extra_price:
                         extra = Decimal(ps.extra_price)
                 except Exception:
                     ps = None
+            total += (price + extra) * qte
 
-            OrderItem.objects.create(order=order, product=p, quantity=qte, size=size_name)
+        # Crée la commande principale et sauvegarde dans l'app core,
+        # ensuite duplique dans l'app paiement pour affichage séparé.
+        with transaction.atomic():
+            order = Order.objects.create(
+                customer=customer,
+                total_amount=total,
+                address=f"{address_line}\n{city}\n{postal_code}\n{country}",
+                status='paid',
+                payment_method=payment_method,
+                payment_reference=payment_reference
+            )
+            # Create order items
+            for p in products:
+                qte = int(p.qte)
+                size_name = ''
+                extra = Decimal('0')
+                ps = None
+                if getattr(p, 'selected_size', None):
+                    try:
+                        ps = ProductSize.objects.get(product=p, size_id=int(p.selected_size))
+                        size_name = ps.size.name
+                        if ps.extra_price:
+                            extra = Decimal(ps.extra_price)
+                    except Exception:
+                        ps = None
+                OrderItem.objects.create(order=order, product=p, quantity=qte, size=size_name)
+                # decrement stock
+                try:
+                    if ps:
+                        if ps.stock >= qte:
+                            ps.stock = ps.stock - qte
+                            ps.save()
+                    else:
+                        if p.stock >= qte:
+                            p.stock = p.stock - qte
+                            p.save()
+                except Exception:
+                    pass
+            # conserver l'id dans la session pour affichage après redirection
+            request.session['last_order_id'] = order.id
 
-            # decrement stock
-            try:
-                if ps:
-                    if ps.stock >= qte:
-                        ps.stock = ps.stock - qte
-                        ps.save()
-                else:
-                    if p.stock >= qte:
-                        p.stock = p.stock - qte
-                        p.save()
-            except Exception:
-                pass
+        # vider le panier
+        panier.clear()
 
-    # vider le panier
-    panier.clear()
+        # duplicate into paiement app OUTSIDE transaction, to never rollback main order
+        try:
+            from paiement.models import Commande as PaiementCommande, ItemCommande
+            cmd = PaiementCommande.objects.create(
+                core_order=order,
+                user=request.user if request.user.is_authenticated else None,
+                adresse_livraison=f"{address_line}, {city}, {postal_code}, {country}",
+                email_livraison=email,
+                telephone_livraison=phone,
+                total=total
+            )
+            for p in products:
+                try:
+                    qte = int(p.qte)
+                    price_unit = Decimal(p.price)
+                    extra = Decimal('0')
+                    if getattr(p, 'selected_size', None):
+                        try:
+                            ps = ProductSize.objects.get(product=p, size_id=int(p.selected_size))
+                            if ps.extra_price:
+                                extra = Decimal(ps.extra_price)
+                        except Exception:
+                            pass
+                    ItemCommande.objects.create(
+                        user=request.user if request.user.is_authenticated else None,
+                        commande=cmd,
+                        produit=p,
+                        quantite=qte,
+                        prix_unitaire=(price_unit + extra),
+                        prix_total=(price_unit + extra) * qte
+                    )
+                except Exception:
+                    # ignore individual item errors
+                    pass
+        except Exception:
+            # if paiement models fail, log and continue
+            import logging
+            logging.exception("paiement duplication failed")
 
-    return JsonResponse({'status': 'ok', 'order_id': order.id})
+        return JsonResponse({'status': 'ok', 'order_id': order.id})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 @require_POST

@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-v!%m7r26*exj!qxfazcd%s(tba68zzf_dgc2)sd2&su4xxk&(m
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['testserver', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -143,12 +143,98 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 JAZZMIN_SETTINGS = {
-    "site_title": "eButik Admin", 
+    "site_title": "eButik Admin",
     "site_header": "eButik",
     "site_brand": "eButik, Admin Area",
     "login_logo": "media/logo.png",
-    "welcome_sign": "Welcome to eButik Admin",
+    "welcome_sign": "Bienvenue dans l'admin eButik",
     "copyright": "eButik Ltd",
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "order_with_respect_to": ["core", "paiement", "panier"],
+    "custom_links": {},
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "core.category": "fas fa-tags",
+        "core.product": "fas fa-box",
+        "core.customer": "fas fa-user-friends",
+        "core.order": "fas fa-shopping-cart",
+        "core.orderitem": "fas fa-list",
+        "core.profil": "fas fa-id-card",
+        "core.size": "fas fa-ruler",
+        "core.productsize": "fas fa-expand",
+        "core.shippingoption": "fas fa-truck",
+        "paiement.commande": "fas fa-receipt",
+        "paiement.itemcommande": "fas fa-clipboard-list",
+        "panier": "fas fa-shopping-basket",
+    },
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    "related_modal_active": False,
+    "custom_css": None,
+    "custom_js": None,
+    "show_ui_builder": False,
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {},
+    "language_chooser": False,
+    "topmenu_links": [
+        {"name": "Accueil", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        {"model": "auth.User"},
+    ],
+    "usermenu_links": [
+        {"name": "Support", "url": "https://github.com/farridav/django-jazzmin/issues", "new_window": True},
+        {"model": "auth.user"}
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+    "custom_links": {
+        "core": [{
+            "name": "Voir le site",
+            "url": "/",
+            "icon": "fas fa-external-link-alt",
+            "permissions": ["core.view_product"]
+        }]
+    },
+    "changeform_format": "horizontal_tabs",
+    "dashboard": {
+        "title": "Dashboard eButik",
+        "cards": [
+            {
+                "title": "Commandes récentes",
+                "model": "core.Order",
+                "filter": {"status": "pending"},
+                "icon": "fas fa-shopping-cart",
+                "color": "blue",
+            },
+            {
+                "title": "Produits en stock",
+                "model": "core.Product",
+                "filter": {"stock__gt": 0},
+                "icon": "fas fa-box",
+                "color": "green",
+            },
+            {
+                "title": "Clients actifs",
+                "model": "core.Customer",
+                "icon": "fas fa-users",
+                "color": "purple",
+            },
+        ],
+        "modules": [
+            {
+                "type": "recent_actions",
+                "title": "Actions récentes",
+                "limit": 10,
+            },
+        ],
+    },
 }
 
 # Stripe configuration (keys can be set via environment variables)

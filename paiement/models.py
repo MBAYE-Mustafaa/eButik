@@ -21,6 +21,10 @@ except Exception:
 
 #Creation du modele Commande
 class Commande(models.Model):
+    # link back to the core Order if one exists (one‑to‑one)
+    core_order = models.OneToOneField('core.Order', null=True, blank=True,
+                                      on_delete=models.SET_NULL,
+                                      verbose_name='commande core')
     # ForeignKey vers l'utilisateur qui a passe la commande
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     date_commande = models.DateTimeField(auto_now_add=True)
@@ -30,7 +34,11 @@ class Commande(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"Commande {self.id} de {self.user.username} - Total: {self.total}"
+        if self.core_order:
+            return f"Commande {self.core_order.id} (paiement {self.id}) - Total: {self.total}"
+        if self.user:
+            return f"Commande {self.id} de {self.user.username} - Total: {self.total}"
+        return f"Commande {self.id} (invité) - Total: {self.total}"
 
 
 #Creation du modele itemCommande
@@ -50,8 +58,13 @@ class ItemCommande(models.Model):
 
 #Adresse de livraison par defaut pour les utilisateurs enregistres
 def AdresseLivraisonParDefaut(sender, instance, created, **kwargs):
+    # create a default ProfilLivraison only when a real user is attached
     if created and instance.user:
-        user_adresse = ProfilLivraison(user=instance)
-        user_adresse.save()
+        try:
+            user_adresse = ProfilLivraison(user=instance.user)
+            user_adresse.save()
+        except Exception:
+            # defensive: ignore any problem (migrations, missing user)
+            pass
 
 post_save.connect(AdresseLivraisonParDefaut, sender=Commande) 
