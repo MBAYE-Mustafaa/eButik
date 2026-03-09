@@ -5,17 +5,17 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
-                        <li class="nav-item"><a class="nav-link active" aria-current="page" href="{% url 'index' %}">Accueil</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'index' %}active{% endif %}" {% if request.resolver_match.url_name == 'index' %}aria-current="page"{% endif %} href="{% url 'index' %}">Accueil</a></li>
 
-                        <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">A propos</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'about' %}active{% endif %}" {% if request.resolver_match.url_name == 'about' %}aria-current="page"{% endif %} href="{% url 'about' %}">A propos</a></li>
 
 
 
                         {% if user.is_authenticated %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
+                        <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'logout' %}active{% endif %}" {% if request.resolver_match.url_name == 'logout' %}aria-current="page"{% endif %} href="{% url 'logout' %}">Logout</a></li>
 
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Profil</a>
+                            <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'update_user' or request.resolver_match.url_name == 'update_info' %}active{% endif %}" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Profil</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                 <li><a class="dropdown-item" href="{% url 'update_user' %}">Profil utilisateur</a></li>
                                 <li><hr class="dropdown-divider" /></li>
@@ -25,14 +25,14 @@
                         </li>
                         
                         {% else %}
-                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Inscription</a></li>
+                            <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'login' %}active{% endif %}" {% if request.resolver_match.url_name == 'login' %}aria-current="page"{% endif %} href="{% url 'login' %}">Login</a></li>
+                            <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'register' %}active{% endif %}" {% if request.resolver_match.url_name == 'register' %}aria-current="page"{% endif %} href="{% url 'register' %}">Inscription</a></li>
                         {% endif %}
 
 
                         
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Catégories</a>
+                            <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'category' or request.resolver_match.url_name == 'category_resume' %}active{% endif %}" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Catégories</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                 <li><a class="dropdown-item" href="{% url 'category_resume' %}">Tous les Articles</a></li>
                                 <li><hr class="dropdown-divider" /></li>
