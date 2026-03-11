@@ -9,7 +9,7 @@ from panier.panier import Panier
 
 import json
 
-# stripe library is optional; imported inside functions if configured
+#Librairies de paiement simulées pour les tests
 
 
 # Page affichée après un paiement (simulé)
@@ -36,13 +36,20 @@ def checkout(request):
         qte = int(v.get('qte', 1))
         total += price * qte
 
-    total_display = f"{total:.2f}"
+    # le total brut reste un Decimal, le formatage se fait en template
+    total_display = None  # conservé pour compatibilité éventuelle
 
     # Pré-remplissage si utilisateur connecté
     prefill = {
         'first_name': '', 'last_name': '', 'email': '', 'phone': '',
         'address_line': '', 'city': '', 'postal_code': '', 'country': ''
     }
+
+    # si le formulaire a été soumis, retenir le pays indiqué pour déterminer la devise
+    if request.method == 'POST':
+        cty = request.POST.get('country') or request.POST.get('pays')
+        if cty:
+            request.session['checkout_country'] = cty
     #si le client a un profil, on préremplit les champs
     if request.user.is_authenticated:
         try:
@@ -61,10 +68,10 @@ def checkout(request):
             prefill['country'] = profil.pays or ''
 
     # note: stripe_pub_key intentionally blank for fallback
+    # on transmet total et laisse le template appliquer le filtre de devise
     return render(request, 'paiement/checkout.html', {
         'stripe_pub_key': stripe_pub,
         'total': total,
-        'total_display': total_display,
         'prefill': prefill,
     })
 
@@ -108,7 +115,7 @@ def create_payment_intent(request):
 def mobile_request(request):
     """
     Point d'entrée minimal pour déclencher une demande Mobile Money.
-    Ceci ne contacte pas de vrai fournisseur — à remplacer par un appel API réel.
+    Ceci ne contacte pas de vrai fournisseur — à remplacer par un appel API réel (Orange Money, Wave, etc ou meme DunyaPay).
     Renvoie JSON {status: 'pending', reference: '...'}
     """
     provider = request.POST.get('mobile_provider')
@@ -316,18 +323,18 @@ def stripe_webhook(request):
         # Invalid signature
         return HttpResponse(status=400)
 
-    # Handle the event
+    # Prendre action selon le type d'événement
     if event.type == 'payment_intent.succeeded':
         payment_intent = event.data.object
         payment_intent_id = payment_intent['id']
 
-        # Find the order with this payment_reference
+        #Trouver la commande correspondante et la marquer comme payée
         from core.models import Order
         try:
             order = Order.objects.get(payment_reference=payment_intent_id, status='pending')
             order.status = 'paid'
             order.save()
         except Order.DoesNotExist:
-            pass  # Order not found or already processed
+            pass  # Dans le cas où on ne trouve pas, on ignore (peut arriver si la commande a déjà été traitée ou si le webhook arrive avant la création de la commande)
 
     return HttpResponse(status=200)

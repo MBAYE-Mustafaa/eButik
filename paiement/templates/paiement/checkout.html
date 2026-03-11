@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load currency_filters %}
 
 {% block content %}
 
@@ -180,13 +181,13 @@
                         {% for prod in panier.get_prods %}
                             <li class="list-group-item d-flex justify-content-between align-items-center">
                                 <span>{{ prod.name }} &times; {{ prod.qte }}</span>
-                                <strong>{{ prod.price }} FCFA</strong>
+                                <strong>{{ prod.price|format_price:currency }}</strong>
                             </li>
                         {% endfor %}
                     </ul>
 
                     <div class="text-end">
-                        <h5 class="fw-bold">Total : {{ total_display }} FCFA</h5>
+                        <h5 class="fw-bold">Total : {{ total|format_price:currency }}</h5>
                     </div>
                 {% else %}
                     <p class="text-muted">Votre panier est vide.</p>

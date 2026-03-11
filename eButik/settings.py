@@ -237,7 +237,7 @@ JAZZMIN_SETTINGS = {
     },
 }
 
-# Stripe configuration (keys can be set via environment variables)
+# Configuration de Stripe - les clés sont chargées depuis les variables d'environnement (via fichier .env)
 STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY', '')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')

@@ -98,11 +98,12 @@ def checkout(request):
         except Exception:
             pass
 
+    # on fournit le total brut au template, le formatage se fait avec le filtre
     context = {
         'form': form,
         'products_panier': products,
         'panier': panier,
-        'total_display': int(total),
+        'total': total,
         'prefill': {},
         'stripe_pub_key': ''
     }

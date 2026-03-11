@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load currency_filters %}
 {% block content %}
 
 <!-- Hero Section -->
@@ -57,7 +58,7 @@
                       </div>
                     </td>
 
-                    <td class="text-end fw-semibold">{{ product.price|floatformat:0 }} FCFA</td>
+                    <td class="text-end fw-semibold">{{ product.price|format_price:currency }}</td>
 
                     <td class="text-center" style="width:120px;">
                        <input type="number" min="1"
@@ -68,7 +69,7 @@
                          data-id="{{ product.id }}">
                     </td>
 
-                    <td class="text-end fw-bold text-dark line-total">0 FCFA</td>
+                    <td class="text-end fw-bold text-dark line-total">{{ 0|format_price:currency }}</td>
 
                     <td class="text-center">
                             <button class="btn btn-sm remove-btn text-danger border-0 bg-transparent fw-bold"
@@ -93,7 +94,7 @@
 
             <div class="d-flex justify-content-between my-2">
               <span class="text-muted">Sous-total</span>
-              <span id="subtotal" class="fw-bold">0 FCFA</span>
+              <span id="subtotal" class="fw-bold">{{ 0|format_price:currency }}</span>
             </div>
 
             <div class="d-flex justify-content-between my-2">
@@ -105,7 +106,7 @@
 
             <div class="d-flex justify-content-between fs-5">
               <span class="fw-bold">Total</span>
-              <span id="grand-total" class="fw-bold">0 FCFA</span>
+              <span id="grand-total" class="fw-bold">{{ 0|format_price:currency }}</span>
             </div>
 
             <div class="d-grid mt-4">
@@ -115,7 +116,7 @@
             </div>
 
             <div class="bg-light rounded-3 p-3 mt-3 small text-muted">
-              Frais de port offerts à partir de <span class="fw-bold">50 000 FCFA</span>
+              Frais de port offerts à partir de <span class="fw-bold">{{ 50000|format_price:currency }}</span>
             </div>
           </div>
         </div>
@@ -130,8 +131,20 @@
 
 <script>
 (function(){
-  function formatFCFA(n){
-    return Math.round(n).toLocaleString('fr-FR') + ' FCFA';
+  // formatage JavaScript en fonction de la devise fournie par le contexte
+  const _currency = "{{ currency }}";
+  const _symbolMap = { 'XOF': 'FCFA', 'EUR': '€' };
+  function formatAmount(n){
+    const cur = _currency.toUpperCase();
+    const opts = {
+      minimumFractionDigits: cur === 'XOF' ? 0 : 2,
+      maximumFractionDigits: cur === 'XOF' ? 0 : 2
+    };
+    const formatted = cur === 'XOF'
+      ? Math.round(n).toLocaleString('fr-FR', opts)
+      : n.toLocaleString('fr-FR', opts);
+    const sym = _symbolMap[cur] || cur;
+    return formatted + ' ' + sym;
   }
 
   function computeTotals(){
@@ -145,11 +158,11 @@
       const line = price * qty;
 
       subtotal += line;
-      row.querySelector('.line-total').textContent = formatFCFA(line);
+      row.querySelector('.line-total').textContent = formatAmount(line);
     });
 
-    document.getElementById('subtotal').textContent = formatFCFA(subtotal);
-    document.getElementById('grand-total').textContent = formatFCFA(subtotal);
+    document.getElementById('subtotal').textContent = formatAmount(subtotal);
+    document.getElementById('grand-total').textContent = formatAmount(subtotal);
   }
 
   document.addEventListener('input', e => {

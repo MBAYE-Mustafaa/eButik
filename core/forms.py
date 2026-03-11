@@ -19,6 +19,13 @@ class CheckoutForm(forms.Form):
         required=True,
         widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Ville'})
     )
+    # ajout du pays de facturation / livraison pour déterminer la devise
+    pays = forms.CharField(
+        label="Pays",
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Pays'})
+    )
     codePostale = forms.CharField(
         label="Code postale",
         max_length=20,

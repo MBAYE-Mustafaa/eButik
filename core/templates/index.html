@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load currency_filters %}
 
 
 {% block content %}
@@ -43,11 +44,11 @@
                                     <h5 class="fw-bolder">{{ product.name }}</h5>
                                     <!-- Product price-->
                                     {% if product.is_on_sale %}
-                                    <span class="text-muted text-decoration-line-through">${{ product.original_price }} FCFA</span>
+                                    <span class="text-muted text-decoration-line-through">{{ product.original_price|format_price:currency }}</span>
 
-                                    {{ product.sale_price }} FCFA
+                                    {{ product.sale_price|format_price:currency }}
                                     {% else %}
-                                    {{ product.price }} FCFA
+                                    {{ product.price|format_price:currency }}
                                     {% endif %}
                                 </div>
                                 {{ product.description|truncatewords:15 }}

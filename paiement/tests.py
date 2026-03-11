@@ -177,7 +177,18 @@ class PaymentTests(TestCase):
         # 4. Checkout page
         resp = client.get('/paiement/checkout/')
         self.assertEqual(resp.status_code, 200)
-        self.assertIn('Validation de la commande', resp.content.decode())
+        content = resp.content.decode()
+        self.assertIn('Validation de la commande', content)
+        # la devise est injectée dans le template (par défaut FCFA)
+        self.assertIn('FCFA', content)
+
+        # 4b. Simuler envoi du formulaire avec un pays européen
+        resp = client.post('/paiement/checkout/', data={'country': 'France'})
+        self.assertEqual(resp.status_code, 200)
+        # la session doit maintenant contenir la devise EUR
+        self.assertEqual(client.session.get('currency'), 'EUR')
+        # page contient le symbole euro
+        self.assertIn('€', resp.content.decode())
 
         # 5. Complete order
         data = {
