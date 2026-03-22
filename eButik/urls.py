@@ -19,4 +19,5 @@ urlpatterns = [
     path('category/<str:foo>/', include('core.urls')),
     path('panier/', include('panier.urls')),
     path('paiement/', include('paiement.urls')),
+    path('search/', include('core.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

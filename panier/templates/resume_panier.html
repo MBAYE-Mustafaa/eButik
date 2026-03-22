@@ -110,11 +110,12 @@
             </div>
 
             <div class="d-grid mt-4">
-              <a href="{% url 'checkout' %}" class="btn btn-primary rounded-3 py-2 fw-bold">
+              <a href="{% url 'checkout' %}" class="btn btn-primary rounded-3 py-2 fw-bold" method="POST">
+               {% csrf_token %}
                 Passer à la commande
               </a>
             </div>
-
+           
             <div class="bg-light rounded-3 p-3 mt-3 small text-muted">
               Frais de port offerts à partir de <span class="fw-bold">{{ 50000|format_price:currency }}</span>
             </div>

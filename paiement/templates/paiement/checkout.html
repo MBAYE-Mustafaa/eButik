@@ -4,8 +4,6 @@
 
 {% block content %}
 
-
-
 <header class="bg-black py-5">
   <div class="container px-4 px-lg-5 my-4">
     <div class="text-center text-white">
@@ -15,20 +13,16 @@
   </div>
 </header>
 
-
 <div class="container py-5" style="max-width:950px;">
-    <h1 class="text-center fw-bold mb-4"></h1>
-
     {% if error %}
         <div class="alert alert-danger text-center">{{ error }}</div>
     {% endif %}
 
     <div class="row g-4">
-
         <!-- FORMULAIRE -->
         <div class="col-lg-7">
             <div class="card shadow-sm border-0 rounded-4 p-4">
-                <form method="post" id="payment-form" novalidate>
+                <form method="post" id="payment-form">
                     {% csrf_token %}
 
                     <h4 class="fw-semibold mb-3">Méthode de paiement</h4>
@@ -86,82 +80,69 @@
                         </div>
                     </div>
 
-                    <!-- Pas de suggestion de création de compte; commande possible sans compte -->
-
-                    <!-- CARTE -->
-                    <div id="card-fields">
-                        <h5 class="fw-semibold mb-3">Paiement par carte</h5>
-
-                        <div class="mb-3">
-                            <label class="form-label">Nom sur la carte</label>
-                            <input class="form-control rounded-3" name="card_name" placeholder="Nom complet" required value="{{ prefill.first_name|default:'' }} {{ prefill.last_name|default:'' }}">
-                        </div>
-
-                        {% if false %} {# Force fallback for testing #}
+                    <!-- CHAMPS DE PAIEMENT STRIPE -->
+                    <div id="bank-fields">
+                        <!-- Champs Carte Bancaire -->
+                        <div id="card-fields">
+                            <h5 class="fw-semibold mb-3">Paiement par carte</h5>
                             <div class="mb-3">
-                                <label class="form-label">Numéro de carte</label>
-                                <div id="card-number-element" class="form-control rounded-3" style="padding: 10px;"></div>
+                                <label class="form-label">Nom sur la carte <span class="text-danger">*</span></label>
+                                <input class="form-control rounded-3" id="card-name" name="card_name" placeholder="Nom complet" required value="{{ prefill.first_name|default:'' }} {{ prefill.last_name|default:'' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Numéro de carte <span class="text-danger">*</span></label>
+                                <div id="card-number-element" class="form-control rounded-3" style="padding: 10px; min-height: 45px;"></div>
                             </div>
                             <div class="row">
                                 <div class="col-6 mb-3">
-                                    <label class="form-label">Date d'expiration</label>
-                                    <div id="card-expiry-element" class="form-control rounded-3" style="padding: 10px;"></div>
+                                    <label class="form-label">Date d'expiration <span class="text-danger">*</span></label>
+                                    <div id="card-expiry-element" class="form-control rounded-3" style="padding: 10px; min-height: 45px;"></div>
                                 </div>
                                 <div class="col-6 mb-3">
-                                    <label class="form-label">Code CVC</label>
-                                    <div id="card-cvc-element" class="form-control rounded-3" style="padding: 10px;"></div>
+                                    <label class="form-label">Code CVC <span class="text-danger">*</span></label>
+                                    <div id="card-cvc-element" class="form-control rounded-3" style="padding: 10px; min-height: 45px;"></div>
                                 </div>
                             </div>
-                            <div id="card-errors" class="text-danger mt-2"></div>
-                        {% else %}
-                            <div class="alert alert-warning">Mode test activé - Paiement simulé.</div>
-                            <label class="form-label">Numéro de carte (test)</label>
-                            <input class="form-control rounded-3" name="card_number_fallback" placeholder="4242 4242 4242 4242">
-                            <div class="row mt-2">
-                                <div class="col-6"><input class="form-control rounded-3" name="card_expiry_fallback" placeholder="MM/AA"></div>
-                                <div class="col-6"><input class="form-control rounded-3" name="card_cvc_fallback" placeholder="CVC"></div>
+                            <div id="card-errors" class="text-danger mt-2" role="alert"></div>
+                            
+                            <div class="alert alert-warning mt-3">
+                                <strong>Mode test</strong> - Utilisez 4242 4242 4242 4242 avec une date future (12/25) et 123
                             </div>
-                        {% endif %}
-                       
-                        <p class="text-muted small mt-2">
-                            Paiement sécurisé via Stripe.
-                        </p>
+                            <p class="text-muted small mt-2">Paiement sécurisé via Stripe.</p>
+                        </div>
+
+                        <!-- Mobile Money -->
+                        <div id="mobile-fields" style="display:none;">
+                            <h5 class="fw-semibold mb-3">Mobile Money</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Opérateur <span class="text-danger">*</span></label>
+                                <select name="mobile_provider" class="form-select rounded-3">
+                                    <option value="">Sélectionnez un opérateur</option>
+                                    <option value="orange">Orange Money</option>
+                                    <option value="wave">Wave</option>
+                                    <option value="free">Free Money</option>
+                                    <option value="other">Autre</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Numéro téléphone <span class="text-danger">*</span></label>
+                                <input class="form-control rounded-3" name="mobile_phone" placeholder="+221 77 000 00 00" value="{{ prefill.phone|default:'' }}">
+                            </div>
+                            <p class="text-muted small">Tu recevras une demande de confirmation après validation.</p>
+                        </div>
+
+                        <!-- SEPA / IBAN -->
+                        <div id="sepa-fields" style="display:none;">
+                            <h5 class="fw-semibold mb-3">Paiement SEPA</h5>
+                            <div class="mb-3">
+                                <label class="form-label">IBAN <span class="text-danger">*</span></label>
+                                <input class="form-control rounded-3" name="iban" placeholder="FR76 3000 6000 0112 3456 7890 189">
+                            </div>
+                            <p class="text-muted small">Paiement SEPA (débit bancaire européen).</p>
+                        </div>
                     </div>
 
-                    <!-- MOBILE MONEY -->
-                    <div id="mobile-fields" style="display:none;">
-                        <h5 class="fw-semibold mb-3">Mobile Money</h5>
-                        <div class="mb-3">
-                            <label class="form-label">Opérateur</label>
-                            <select name="mobile_provider" class="form-select rounded-3">
-                                <option value="orange">Orange Money</option>
-                                <option value="wave">Wave</option>
-                                <option value="free">Free Money</option>
-                                <option value="other">Autre</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Numéro téléphone</label>
-                            <input class="form-control rounded-3" name="mobile_phone" placeholder="+221 77 000 00 00" value="{{ prefill.phone|default:'' }}">
-                        </div>
-                        <p class="text-muted small">
-                            Tu recevras une demande de confirmation après validation.
-                        </p>
-                    </div>
-
-                    <!-- SEPA / IBAN -->
-                    <div id="sepa-fields" style="display:none;">
-                        <h5 class="fw-semibold mb-3">Paiement SEPA</h5>
-                        <div class="mb-3">
-                            <label class="form-label">IBAN</label>
-                            <input class="form-control rounded-3" name="iban" placeholder="ex: FR76 3000 6000 0112 3456 7890 189">
-                        </div>
-                        <p class="text-muted small">
-                            Paiement SEPA (débit bancaire européen).
-                        </p>
-                    </div>
-
-                    <button type="submit" class="btn btn-dark w-100 rounded-3 py-2 mt-4 fw-bold">
+                    <button type="submit" class="btn btn-dark w-100 rounded-3 py-2 mt-4 fw-bold" id="submit-button">
                         Payer maintenant
                     </button>
                 </form>
@@ -175,7 +156,7 @@
                 <hr>
 
                 {% if panier.total_items %}
-                    <p><strong>Nombre d’articles :</strong> {{ panier.total_items }}</p>
+                    <p><strong>Nombre d'articles :</strong> {{ panier.total_items }}</p>
 
                     <ul class="list-group rounded-3 mb-3">
                         {% for prod in panier.get_prods %}
@@ -192,9 +173,6 @@
                 {% else %}
                     <p class="text-muted">Votre panier est vide.</p>
                 {% endif %}
-
-                <!-- Cette page prépare le paiement. Une vraie passerelle est requise pour transactions réelles. -->
-        
             </div>
         </div>
     </div>
@@ -215,16 +193,40 @@
 .payment-option input {
     margin-right:8px;
 }
+#card-number-element, #card-expiry-element, #card-cvc-element {
+    background: white;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out;
+}
+#card-number-element:focus-within, #card-expiry-element:focus-within, #card-cvc-element:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+}
+.loader {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 3px solid #3498db;
+    animation: spin 1s linear infinite;
+    margin-right: 10px;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 </style>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
+// Fonction pour récupérer le cookie CSRF
 function getCookie(name) {
-    var cookieValue = null;
+    let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = cookies[i].trim();
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
             if (cookie.substring(0, name.length + 1) === (name + '=')) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
@@ -234,6 +236,7 @@ function getCookie(name) {
     return cookieValue;
 }
 
+// Fonction pour basculer entre les méthodes de paiement
 function toggleFields(){
     const method = document.querySelector('input[name="payment_method"]:checked').value;
     document.getElementById('card-fields').style.display = method === 'card' ? 'block' : 'none';
@@ -241,140 +244,239 @@ function toggleFields(){
     document.getElementById('sepa-fields').style.display = method === 'sepa' ? 'block' : 'none';
 }
 
-document.querySelectorAll('input[name="payment_method"]').forEach(el => {
-    el.addEventListener('change', toggleFields);
-});
-toggleFields();
-
-// Stripe
-const stripePub = "{{ stripe_pub_key|default:'' }}";
-        if(stripePub){
-            const stripe = Stripe(stripePub);
-            const elements = stripe.elements();
-            const cardNumber = elements.create('cardNumber');
-            const cardExpiry = elements.create('cardExpiry');
-            const cardCvc = elements.create('cardCvc');
-            cardNumber.mount('#card-number-element');
-            cardExpiry.mount('#card-expiry-element');
-            cardCvc.mount('#card-cvc-element');
-
-            // Affiche les erreurs de Stripe Elements dans la div #card-errors
-            [cardNumber, cardExpiry, cardCvc].forEach(function(element) {
-                element.on('change', function(event){
-                    var displayError = document.getElementById('card-errors');
-                    if(displayError){
-                        displayError.textContent = event.error ? event.error.message : '';
-                    }
-                });
-            });
-
-            // Après paiement réussi, on enregistre la commande côté serveur
-            function submitOrderToServer(paymentMethod, reference){
-                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                const formData = new FormData();
-                // client info
-                ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){
-                    formData.append(k, document.querySelector('[name="'+k+'"]').value || '');
-                });
-                formData.append('payment_method', paymentMethod);
-                formData.append('payment_reference', reference || '');
-
-                return fetch('/paiement/complete-order/', {
-                    method: 'POST',
-                    headers: { 'X-CSRFToken': csrftoken },
-                    body: formData
-                }).then(r => r.json());
+// Initialisation
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM chargé - Initialisation Stripe");
+    
+    // Ajouter les écouteurs pour les radios
+    document.querySelectorAll('input[name="payment_method"]').forEach(el => {
+        el.addEventListener('change', toggleFields);
+    });
+    toggleFields();
+    
+    // Initialisation de Stripe
+    const stripePub = "{{ stripe_pub_key|default:'' }}";
+    console.log("Clé Stripe:", stripePub ? "Présente" : "Manquante");
+    
+    if (!stripePub) {
+        console.error("Clé Stripe manquante");
+        return;
+    }
+    
+    const stripe = Stripe(stripePub);
+    const elements = stripe.elements();
+    
+    // Créer les éléments Stripe
+    const cardNumber = elements.create('cardNumber');
+    const cardExpiry = elements.create('cardExpiry');
+    const cardCvc = elements.create('cardCvc');
+    
+    // Monter les éléments
+    cardNumber.mount('#card-number-element');
+    cardExpiry.mount('#card-expiry-element');
+    cardCvc.mount('#card-cvc-element');
+    
+    console.log("Éléments Stripe montés");
+    
+    // Gestion des erreurs
+    [cardNumber, cardExpiry, cardCvc].forEach(element => {
+        element.on('change', function(event) {
+            const displayError = document.getElementById('card-errors');
+            if (displayError) {
+                displayError.textContent = event.error ? event.error.message : '';
             }
-
-            // override the confirmCardPayment flow to persist order after success
-            const originalForm = document.getElementById('payment-form');
-            originalForm.addEventListener('submit', function(e){
-                const method = document.querySelector('input[name="payment_method"]:checked').value;
-                if(method !== 'card') return; // handled elsewhere
-
-                e.preventDefault();
-
-                fetch('/paiement/create-payment-intent/', { method: 'POST', headers: { 'X-CSRFToken': getCookie('csrftoken') }, credentials: 'same-origin' })
-                .then(r => r.json()).then(function(data){
-                    if(data.error){ alert('Erreur: '+data.error); return; }
-                    const clientSecret = data.clientSecret;
-                    const cardName = document.querySelector('[name="card_name"]').value;
-                    stripe.confirmCardPayment(clientSecret, {
-                        payment_method: { card: cardNumber, billing_details: { name: cardName } }
-                    }).then(function(result){
-                        var displayError = document.getElementById('card-errors');
-                        if(result.error){
-                            if(displayError) displayError.textContent = result.error.message;
-                            return;
-                        }
-                        if(result.paymentIntent && result.paymentIntent.status === 'succeeded'){
-                            submitOrderToServer('card', result.paymentIntent.id).then(function(json){
-                                if(json.error) { alert('Erreur en enregistrant la commande: '+json.error); return; }
-                                window.location = '/paiement/paiement_success/';
-                            }).catch(function(){ alert('Erreur réseau lors de l’enregistrement de la commande'); });
-                        }
-                    });
-                }).catch(function(){ alert('Erreur réseau lors de la création du PaymentIntent'); });
-                    }, { once: true });
+        });
+    });
+    
+    // Gestion de la soumission du formulaire
+    const form = document.getElementById('payment-form');
+    const submitButton = document.getElementById('submit-button');
+    
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        console.log("Formulaire soumis - Méthode:", document.querySelector('input[name="payment_method"]:checked').value);
+        
+        const method = document.querySelector('input[name="payment_method"]:checked').value;
+        
+        // Désactiver le bouton
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="loader"></span> Traitement en cours...';
+        
+        if (method === 'card') {
+            try {
+                // Récupérer le nom sur la carte
+                const cardName = document.getElementById('card-name').value;
+                
+                if (!cardName) {
+                    throw new Error("Veuillez saisir le nom sur la carte");
                 }
-
-                // Gestion globale pour Mobile Money, SEPA et carte fallback
-                document.getElementById('payment-form').addEventListener('submit', function(e){
-                    const method = document.querySelector('input[name="payment_method"]:checked').value;
-                    if(method === 'mobile'){
-                        e.preventDefault();
-                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                        const data = new FormData();
-                        data.append('mobile_provider', document.querySelector('[name="mobile_provider"]').value || '');
-                        data.append('mobile_phone', document.querySelector('[name="mobile_phone"]').value || '');
-
-                        fetch('/paiement/mobile-request/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: data, credentials: 'same-origin' })
-                        .then(function(r){
-                            if(!r.ok){ return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); }); }
-                            return r.json();
-                        }).then(function(json){
-                            if(json.error){ alert('Erreur: '+json.error); return; }
-                            // enregistrer la commande côté serveur en pending
-                            const fd = new FormData();
-                            ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){ fd.append(k, document.querySelector('[name="'+k+'"]').value || ''); });
-                            fd.append('payment_method','mobile'); fd.append('payment_reference', json.reference || '');
-
-                            fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
-                            .then(function(r){
-                                if(!r.ok){ return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); }); }
-                                return r.json();
-                            }).then(function(j){ if(j.error) alert('Erreur en enregistrant la commande: '+j.error); else window.location='/paiement/paiement_success/'; })
-                            .catch(function(e){ console.error('complete-order error', e); alert('Erreur réseau lors de l enregistrement de la commande: '+e.message); });
-                        }).catch(function(){ alert('Erreur réseau lors de la requête mobile-money'); });
-                    }
-
-                    if(method === 'sepa'){
-                        e.preventDefault();
-                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                        const fd = new FormData();
-                        ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){ fd.append(k, document.querySelector('[name="'+k+'"]').value || ''); });
-                        fd.append('payment_method','sepa'); fd.append('payment_reference', document.querySelector('[name="iban"]').value || '');
-
-                        fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
-                        .then(r => r.json()).then(function(j){ if(j.error) alert('Erreur: '+j.error); else window.location='/paiement/paiement_success/'; })
-                        .catch(function(){ alert('Erreur réseau'); });
-                    }
-
-                    if(method === 'card' && !stripePub){
-                        e.preventDefault();
-                        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                        const fd = new FormData();
-                        ['first_name','last_name','email','phone','address_line','city','postal_code','country'].forEach(function(k){ fd.append(k, document.querySelector('[name="'+k+'"]').value || ''); });
-                        fd.append('payment_method','card'); fd.append('payment_reference', 'test_payment_' + Date.now());
-
-                        fetch('/paiement/complete-order/', { method: 'POST', headers: { 'X-CSRFToken': csrftoken }, body: fd, credentials: 'same-origin' })
-                        .then(function(r){
-                            if(!r.ok){ return r.text().then(function(t){ throw new Error('HTTP '+r.status+': '+t); }); }
-                            return r.json();
-                        }).then(function(j){ if(j.error) alert('Erreur: '+j.error); else window.location='/paiement/paiement_success/'; })
-                        .catch(function(e){ console.error('card complete-order error', e); alert('Erreur réseau: '+e.message); });
+                
+                // 1. Créer le PaymentIntent
+                console.log("Création du PaymentIntent...");
+                const response = await fetch('/paiement/create-payment-intent/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                const data = await response.json();
+                console.log("Réponse create-payment-intent:", data);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // 2. Confirmer le paiement
+                console.log("Confirmation du paiement...");
+                const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+                    payment_method: {
+                        card: cardNumber,
+                        billing_details: {
+                            name: cardName,
+                            email: document.querySelector('[name="email"]').value
+                        }
                     }
                 });
-        </script>
+                
+                if (error) {
+                    throw new Error(error.message);
+                }
+                
+                console.log("Paiement réussi:", paymentIntent);
+                
+                // 3. Enregistrer la commande
+                console.log("Enregistrement de la commande...");
+                const formData = new FormData(form);
+                formData.append('payment_method', 'card');
+                formData.append('payment_reference', paymentIntent.id);
+                
+                const orderResponse = await fetch('/paiement/complete-order/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const orderResult = await orderResponse.json();
+                console.log("Résultat commande:", orderResult);
+                
+                if (orderResult.error) {
+                    throw new Error(orderResult.error);
+                }
+                
+                // 4. Rediriger vers la page de succès
+                console.log("Redirection vers paiement_success");
+                window.location.href = '/paiement/paiement_success/';
+                
+            } catch (error) {
+                console.error("Erreur:", error);
+                document.getElementById('card-errors').textContent = error.message;
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Payer maintenant';
+            }
+        }
+        else if (method === 'mobile') {
+            try {
+                const provider = document.querySelector('[name="mobile_provider"]').value;
+                const phone = document.querySelector('[name="mobile_phone"]').value;
+                
+                if (!provider || !phone) {
+                    throw new Error("Veuillez remplir tous les champs");
+                }
+                
+                // Appel à mobile-request
+                const mobileData = new FormData();
+                mobileData.append('mobile_provider', provider);
+                mobileData.append('mobile_phone', phone);
+                
+                const mobileResponse = await fetch('/paiement/mobile-request/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: mobileData,
+                    credentials: 'same-origin'
+                });
+                
+                const mobileResult = await mobileResponse.json();
+                
+                if (mobileResult.error) {
+                    throw new Error(mobileResult.error);
+                }
+                
+                // Enregistrer la commande
+                const formData = new FormData(form);
+                formData.append('payment_method', 'mobile');
+                formData.append('payment_reference', mobileResult.reference);
+                
+                const orderResponse = await fetch('/paiement/complete-order/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const orderResult = await orderResponse.json();
+                
+                if (orderResult.error) {
+                    throw new Error(orderResult.error);
+                }
+                
+                window.location.href = '/paiement/paiement_success/';
+                
+            } catch (error) {
+                console.error("Erreur mobile:", error);
+                alert(error.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Payer maintenant';
+            }
+        }
+        else if (method === 'sepa') {
+            try {
+                const iban = document.querySelector('[name="iban"]').value;
+                
+                if (!iban) {
+                    throw new Error("Veuillez saisir votre IBAN");
+                }
+                
+                // Enregistrer la commande
+                const formData = new FormData(form);
+                formData.append('payment_method', 'sepa');
+                formData.append('payment_reference', iban);
+                
+                const orderResponse = await fetch('/paiement/complete-order/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                
+                const orderResult = await orderResponse.json();
+                
+                if (orderResult.error) {
+                    throw new Error(orderResult.error);
+                }
+                
+                window.location.href = '/paiement/paiement_success/';
+                
+            } catch (error) {
+                console.error("Erreur SEPA:", error);
+                alert(error.message);
+                submitButton.disabled = false;
+                submitButton.innerHTML = 'Payer maintenant';
+            }
+        }
+    });
+});
+</script>
 
 {% endblock %}
