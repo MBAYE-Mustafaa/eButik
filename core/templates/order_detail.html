@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+
+{% block title %}Détails de la Commande #{{ order.id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row">
+        <div class="col-md-12">
+            <a href="{% url 'order_history' %}" class="btn btn-secondary mb-3">← Retour</a>
+            
+            <h1 class="mb-4">Commande #{{ order.id }}</h1>
+            
+            <div class="row">
+                <!-- Informations de la commande -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">📋 Informations de la Commande</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless">
+                                <tbody>
+                                    <tr>
+                                        <td><strong>N° Commande:</strong></td>
+                                        <td>#{{ order.id }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Date:</strong></td>
+                                        <td>{{ order.order_date|date:"d/m/Y à H:i" }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Montant Total:</strong></td>
+                                        <td><strong style="color: #28a745; font-size: 1.2em;">{{ order.total_amount }} XOF</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Méthode de Paiement:</strong></td>
+                                        <td>{{ order.payment_method|default:"Non spécifiée" }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statuts -->
+                <div class="col-md-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-info text-white">
+                            <h5 class="mb-0">🔄 Statuts</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>Paiement:</strong></p>
+                                {% if order.status == 'paid' %}
+                                    <span class="badge bg-success" style="font-size: 1.1em;">✓ Payée</span>
+                                {% elif order.status == 'pending' %}
+                                    <span class="badge bg-warning" style="font-size: 1.1em;">⏳ En attente</span>
+                                {% elif order.status == 'cancelled' %}
+                                    <span class="badge bg-danger" style="font-size: 1.1em;">✕ Annulée</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>Livraison:</strong></p>
+                                {% if order.delivery_status == 'pending' %}
+                                    <span class="badge bg-info" style="font-size: 1.1em;">📦 En attente</span>
+                                {% elif order.delivery_status == 'processing' %}
+                                    <span class="badge bg-primary" style="font-size: 1.1em;">⚙️ En traitement</span>
+                                {% elif order.delivery_status == 'shipped' %}
+                                    <span class="badge bg-secondary" style="font-size: 1.1em;">🚚 Expédiée</span>
+                                {% elif order.delivery_status == 'delivered' %}
+                                    <span class="badge bg-success" style="font-size: 1.1em;">✓ Livrée</span>
+                                {% elif order.delivery_status == 'cancelled' %}
+                                    <span class="badge bg-danger" style="font-size: 1.1em;">✕ Annulée</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if order.tracking_number %}
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>N° Suivi:</strong></p>
+                                <code>{{ order.tracking_number }}</code>
+                            </div>
+                            {% endif %}
+                            
+                            {% if order.shipped_date %}
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>Date d'expédition:</strong></p>
+                                {{ order.shipped_date|date:"d/m/Y" }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if order.delivered_date %}
+                            <div class="mb-3">
+                                <p class="mb-1"><strong>Date de livraison:</strong></p>
+                                {{ order.delivered_date|date:"d/m/Y" }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Adresse de Livraison -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📍 Adresse de Livraison</h5>
+                </div>
+                <div class="card-body">
+                    <pre style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word;">{{ order.address }}</pre>
+                </div>
+            </div>
+            
+            <!-- Articles Commandés -->
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">🛍️ Articles Commandés</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Produit</th>
+                                    <th class="text-center">Quantité</th>
+                                    <th class="text-right">Prix Unitaire</th>
+                                    {% if order_items.0.size %}
+                                    <th>Taille</th>
+                                    {% endif %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in order_items %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'product' item.product.id %}">
+                                            {{ item.product.name }}
+                                        </a>
+                                    </td>
+                                    <td class="text-center">{{ item.quantity }}</td>
+                                    <td class="text-right">{{ item.product.price }} XOF</td>
+                                    {% if item.size %}
+                                    <td>{{ item.size }}</td>
+                                    {% endif %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Timeline de suivi -->
+            <div class="card mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">📅 Suivi de votre Commande</h5>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <p class="mb-0"><strong>Commande reçue</strong></p>
+                                <small class="text-muted">{{ order.order_date|date:"d/m/Y à H:i" }}</small>
+                            </div>
+                        </div>
+                        
+                        {% if order.status == 'paid' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <p class="mb-0"><strong>Paiement confirmé</strong></p>
+                                <small class="text-muted">✓ Paiement reçu et validé</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if order.delivery_status == 'processing' or order.delivery_status == 'shipped' or order.delivery_status == 'delivered' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker {% if order.delivery_status == 'shipped' or order.delivery_status == 'delivered' %}bg-success{% else %}bg-warning{% endif %}"></div>
+                            <div class="timeline-content">
+                                <p class="mb-0"><strong>Commande en préparation</strong></p>
+                                <small class="text-muted">Nous préparons votre commande...</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if order.delivery_status == 'shipped' or order.delivery_status == 'delivered' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker {% if order.delivery_status == 'delivered' %}bg-success{% else %}bg-warning{% endif %}"></div>
+                            <div class="timeline-content">
+                                <p class="mb-0"><strong>Colis expédié</strong></p>
+                                {% if order.shipped_date %}
+                                <small class="text-muted">{{ order.shipped_date|date:"d/m/Y" }}</small>
+                                {% else %}
+                                <small class="text-muted">En route vers vous...</small>
+                                {% endif %}
+                                {% if order.tracking_number %}
+                                <br><small><strong>N° de suivi:</strong> {{ order.tracking_number }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if order.delivery_status == 'delivered' %}
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <p class="mb-0"><strong>Commande livrée</strong></p>
+                                <small class="text-muted">{{ order.delivered_date|date:"d/m/Y" }}</small>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <a href="{% url 'order_history' %}" class="btn btn-primary">Voir toutes les commandes</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline-item {
+        display: flex;
+        margin-bottom: 30px;
+        position: relative;
+    }
+    
+    .timeline-item:not(:last-child)::before {
+        content: '';
+        position: absolute;
+        left: 30px;
+        top: 60px;
+        bottom: -30px;
+        width: 2px;
+        background-color: #dee2e6;
+    }
+    
+    .timeline-marker {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        flex-shrink: 0;
+        margin-right: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-content {
+        flex: 1;
+        padding-top: 10px;
+    }
+    
+    .card-header {
+        font-weight: bold;
+    }
+    
+    h1 {
+        color: #333;
+        border-bottom: 3px solid #007bff;
+        padding-bottom: 10px;
+    }
+    
+    .badge {
+        font-size: 0.95em;
+        padding: 0.6em 1em;
+    }
+</style>
+{% endblock %}

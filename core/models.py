@@ -112,12 +112,21 @@ class ProductSize(models.Model):
 
 # Order and OrderItem models to handle customer orders
 class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('paid', 'Paid'),
-        ('cancelled', 'Cancelled'),
+    PAYMENT_STATUS = [
+        ('pending', 'En attente'),
+        ('paid', 'Payée'),
+        ('cancelled', 'Annulée'),
+    ]
+    
+    DELIVERY_STATUS = [
+        ('pending', 'En attente'),
+        ('processing', 'En traitement'),
+        ('shipped', 'Expédiée'),
+        ('delivered', 'Livrée'),
+        ('cancelled', 'Annulée'),
     ]
 
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE)
     products = models.ManyToManyField(Product, through='OrderItem')
     order_date = models.DateTimeField(default=datetime.datetime.now)
@@ -125,12 +134,21 @@ class Order(models.Model):
     address = models.TextField(blank=True, null=True)
 
     # payment tracking
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
     payment_method = models.CharField(max_length=20, blank=True, null=True)
     payment_reference = models.CharField(max_length=200, blank=True, null=True)
+    
+    # delivery tracking
+    delivery_status = models.CharField(max_length=20, choices=DELIVERY_STATUS, default='pending')
+    tracking_number = models.CharField(max_length=100, blank=True, null=True)
+    shipped_date = models.DateTimeField(null=True, blank=True)
+    delivered_date = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"Order {self.id} - {self.customer}"
+    
+    class Meta:
+        ordering = ['-order_date']
 
 
 class OrderItem(models.Model):

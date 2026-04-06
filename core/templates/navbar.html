@@ -15,12 +15,12 @@
                         <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'logout' %}active{% endif %}" {% if request.resolver_match.url_name == 'logout' %}aria-current="page"{% endif %} href="{% url 'logout' %}">Logout</a></li>
 
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'update_user' or request.resolver_match.url_name == 'update_info' %}active{% endif %}" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Profil</a>
+                            <a class="nav-link dropdown-toggle {% if request.resolver_match.url_name == 'update_user' or request.resolver_match.url_name == 'update_info' or request.resolver_match.url_name == 'order_history' %}active{% endif %}" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Profil</a>
                             <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
                                 <li><a class="dropdown-item" href="{% url 'update_user' %}">Profil utilisateur</a></li>
-                                <li><hr class="dropdown-divider" /></li>
                                 <li><a class="dropdown-item" href="{% url 'update_info' %}">Infos utilisateur</a></li>
-                                
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" href="{% url 'order_history' %}">📦 Mes Commandes</a></li>
                             </ul>
                         </li>
                         

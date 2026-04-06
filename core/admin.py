@@ -29,17 +29,20 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'customer', 'customer_email', 'order_date', 'total_amount', 'colored_status', 'payment_method', 'payment_reference')
-    list_filter = ('status', 'payment_method', 'order_date')
-    search_fields = ('customer__first_name','customer__last_name','customer__email','payment_reference', 'id')
+    list_display = ('id', 'customer', 'customer_email', 'order_date', 'total_amount', 'colored_payment_status', 'colored_delivery_status', 'payment_method')
+    list_filter = ('status', 'delivery_status', 'payment_method', 'order_date')
+    search_fields = ('customer__first_name','customer__last_name','customer__email','payment_reference', 'tracking_number', 'id')
     inlines = [OrderItemInline]
-    readonly_fields = ('order_date','payment_reference')
+    readonly_fields = ('order_date','payment_reference', 'user')
     date_hierarchy = 'order_date'
     ordering = ('-order_date',)
     list_per_page = 50  # Show more items per page
     fieldsets = (
         (None, {
-            'fields': ('customer','order_date','status','payment_method','payment_reference')
+            'fields': ('user', 'customer','order_date','status','delivery_status','payment_method','payment_reference')
+        }),
+        ('Suivi de Livraison', {
+            'fields': ('tracking_number', 'shipped_date', 'delivered_date'),
         }),
         ('Adresse & contact', {
             'fields': ('address',),
@@ -52,25 +55,42 @@ class OrderAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         """Optimize queryset to prevent N+1 queries"""
         qs = super().get_queryset(request)
-        return qs.select_related('customer')
+        return qs.select_related('customer', 'user')
 
     def customer_email(self, obj):
         return obj.customer.email
     customer_email.short_description = 'Email client'
     customer_email.admin_order_field = 'customer__email'
 
-    def colored_status(self, obj):
+    def colored_payment_status(self, obj):
         status = obj.status
         if status == 'paid':
-            return format_html('<span style="color: green; font-weight: bold;">Payé</span>')
+            return format_html('<span style="color: green; font-weight: bold;">✓ Payé</span>')
         elif status == 'pending':
-            return format_html('<span style="color: orange; font-weight: bold;">En attente</span>')
+            return format_html('<span style="color: orange; font-weight: bold;">⏳ En attente</span>')
         elif status == 'cancelled':
-            return format_html('<span style="color: red; font-weight: bold;">Annulé</span>')
+            return format_html('<span style="color: red; font-weight: bold;">✕ Annulé</span>')
         else:
             return obj.get_status_display()
-    colored_status.short_description = 'Statut'
-    colored_status.admin_order_field = 'status'
+    colored_payment_status.short_description = 'Paiement'
+    colored_payment_status.admin_order_field = 'status'
+    
+    def colored_delivery_status(self, obj):
+        status = obj.delivery_status
+        if status == 'pending':
+            return format_html('<span style="color: #6c757d; font-weight: bold;">📦 En attente</span>')
+        elif status == 'processing':
+            return format_html('<span style="color: #0d6efd; font-weight: bold;">⚙️ En traitement</span>')
+        elif status == 'shipped':
+            return format_html('<span style="color: #6f42c1; font-weight: bold;">🚚 Expédiée</span>')
+        elif status == 'delivered':
+            return format_html('<span style="color: green; font-weight: bold;">✓ Livrée</span>')
+        elif status == 'cancelled':
+            return format_html('<span style="color: red; font-weight: bold;">✕ Annulée</span>')
+        else:
+            return obj.get_delivery_status_display()
+    colored_delivery_status.short_description = 'Livraison'
+    colored_delivery_status.admin_order_field = 'delivery_status'
 
 
 @admin.register(Size)

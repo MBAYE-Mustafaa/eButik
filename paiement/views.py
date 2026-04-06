@@ -311,6 +311,7 @@ def complete_order(request):
         # Crée la commande principale
         with transaction.atomic():
             order = Order.objects.create(
+                user=request.user if request.user.is_authenticated else None,
                 customer=customer,
                 total_amount=total,
                 address=f"{address_line}\n{city}\n{postal_code}\n{country}",

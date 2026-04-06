@@ -266,4 +266,43 @@ def register_user(request):
     else:
             return render(request, 'register.html', {'form': form})
 
+
+def order_history(request):
+    """Affiche l'historique des commandes de l'utilisateur connecté."""
+    if not request.user.is_authenticated:
+        messages.error(request, "Vous devez être connecté pour voir votre historique de commandes.")
+        return redirect('login')
     
+    from .models import Order
+    # Récupérer toutes les commandes de l'utilisateur
+    orders = Order.objects.filter(user=request.user).prefetch_related('orderitem_set__product')
+    
+    context = {
+        'orders': orders,
+        'payment_status_display': dict(Order.PAYMENT_STATUS),
+        'delivery_status_display': dict(Order.DELIVERY_STATUS),
+    }
+    
+    return render(request, 'order_history.html', context)
+
+
+def order_detail(request, order_id):
+    """Affiche les détails d'une commande spécifique."""
+    if not request.user.is_authenticated:
+        messages.error(request, "Vous devez être connecté pour voir vos commandes.")
+        return redirect('login')
+    
+    from .models import Order
+    from django.shortcuts import get_object_or_404
+    
+    # Récupérer la commande et vérifier qu'elle appartient à l'utilisateur
+    order = get_object_or_404(Order, id=order_id, user=request.user)
+    
+    context = {
+        'order': order,
+        'payment_status_display': dict(Order.PAYMENT_STATUS),
+        'delivery_status_display': dict(Order.DELIVERY_STATUS),
+        'order_items': order.orderitem_set.all().select_related('product'),
+    }
+    
+    return render(request, 'order_detail.html', context)
