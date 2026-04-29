@@ -10,4 +10,8 @@ urlpatterns = [
     path('paiement_success/', views.paiement_success, name='paiement_success'),
     path('paiement_cancel/', views.cancel_view, name='paiement_cancel'),
     path('stripe-webhook/', views.stripe_webhook, name='stripe_webhook'),
+    # Webhooks Mobile Money
+    path('wave-webhook/', views.wave_webhook, name='wave_webhook'),
+    path('orange-webhook/', views.orange_webhook, name='orange_webhook'),
+    path('lemfi-webhook/', views.lemfi_webhook, name='lemfi_webhook'),
 ]

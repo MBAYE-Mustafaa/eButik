@@ -1,13 +1,5 @@
 # ✅ Résumé - Implémentation du Suivi de Commandes
 
-## 🎯 Mission Accomplie
-
-Vous aviez demandé: *"Je voudrais bien que la commande du client s'enregistre dans sa page une fois sa commande payée pour qu'il ait une historique ainsi qu'il puisse suivre sa commande"*
-
-**C'est maintenant fait !** ✓
-
----
-
 ## 📋 Checklist d'Implémentation
 
 ### 1. **Modèle de Données** ✅

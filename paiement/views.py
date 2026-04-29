@@ -14,11 +14,39 @@ from panier.panier import Panier
 import json
 import stripe 
 import logging
+import requests
+import uuid
+from datetime import datetime, timedelta
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
 # Configuration de la devise
 SITE_CURRENCY = 'XOF'  # Devise du site
+
+# Configuration Mobile Money
+MOBILE_MONEY_CONFIG = {
+    'wave': {
+        'api_url': 'https://api.wave.com/v1/checkout/sessions',
+        'api_key': getattr(settings, 'WAVE_API_KEY', ''),
+        'secret': getattr(settings, 'WAVE_SECRET_KEY', ''),
+        'webhook_secret': getattr(settings, 'WAVE_WEBHOOK_SECRET', ''),
+        'merchant_id': getattr(settings, 'WAVE_MERCHANT_ID', ''),
+    },
+    'orange': {
+        'api_url': 'https://api.orange.com/orange-money-webpay/dev/v1/webpayment',
+        'client_id': getattr(settings, 'ORANGE_CLIENT_ID', ''),
+        'client_secret': getattr(settings, 'ORANGE_CLIENT_SECRET', ''),
+        'merchant_key': getattr(settings, 'ORANGE_MERCHANT_KEY', ''),
+        'webhook_secret': getattr(settings, 'ORANGE_WEBHOOK_SECRET', ''),
+    },
+    'lemfi': {
+        'api_url': 'https://api.lemfi.com/v1/payments',
+        'api_key': getattr(settings, 'LEMFY_API_KEY', ''),
+        'secret': getattr(settings, 'LEMFY_SECRET_KEY', ''),
+        'webhook_secret': getattr(settings, 'LEMFY_WEBHOOK_SECRET', ''),
+        'merchant_id': getattr(settings, 'LEMFY_MERCHANT_ID', ''),
+    }
+}
 
 # Page affichée après un paiement (simulé)
 def paiement_success(request):
@@ -222,18 +250,323 @@ def create_payment_intent(request):
 @require_POST
 def mobile_request(request):
     """
-    Point d'entrée minimal pour déclencher une demande Mobile Money.
+    Point d'entrée pour initier un paiement Mobile Money.
+    Supporte Wave, Orange Money, et Lemfi.
     """
     provider = request.POST.get('mobile_provider')
     phone = request.POST.get('mobile_phone')
-    if not phone:
-        return JsonResponse({'error': 'Téléphone requis'}, status=400)
+    amount = request.POST.get('amount')
 
-    import uuid
-    ref = str(uuid.uuid4())
+    if not all([provider, phone, amount]):
+        return JsonResponse({'error': 'Paramètres manquants'}, status=400)
 
-    # TODO: ici appeler l'API du fournisseur mobile money (Orange Money, Wave...)
-    return JsonResponse({'status': 'pending', 'reference': ref, 'message': "Demande envoyée. Confirmez le paiement sur votre téléphone."})
+    if provider not in ['wave', 'orange', 'lemfi']:
+        return JsonResponse({'error': 'Fournisseur non supporté'}, status=400)
+
+    try:
+        amount = float(amount)
+        if amount < 100:  # Minimum 100 XOF
+            return JsonResponse({'error': 'Montant minimum: 100 XOF'}, status=400)
+    except ValueError:
+        return JsonResponse({'error': 'Montant invalide'}, status=400)
+
+    # Générer une référence unique
+    reference = f"MM-{uuid.uuid4().hex[:12].upper()}"
+
+    # Stocker les infos dans la session
+    request.session['mobile_payment'] = {
+        'provider': provider,
+        'phone': phone,
+        'amount': amount,
+        'reference': reference,
+        'timestamp': datetime.now().isoformat()
+    }
+
+    # Appeler l'API du fournisseur
+    try:
+        if provider == 'wave':
+            return initiate_wave_payment(request, phone, amount, reference)
+        elif provider == 'orange':
+            return initiate_orange_payment(request, phone, amount, reference)
+        elif provider == 'lemfi':
+            return initiate_lemfi_payment(request, phone, amount, reference)
+    except Exception as e:
+        logging.error(f"Erreur paiement {provider}: {str(e)}")
+        return JsonResponse({'error': f'Erreur technique: {str(e)}'}, status=500)
+
+
+def initiate_wave_payment(request, phone, amount, reference):
+    """
+    Initier un paiement Wave Money.
+    """
+    config = MOBILE_MONEY_CONFIG['wave']
+    
+    if not config['api_key']:
+        return JsonResponse({'error': 'Configuration Wave manquante'}, status=500)
+
+    headers = {
+        'Authorization': f'Bearer {config["api_key"]}',
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        'amount': str(int(amount)),  # Wave attend un string
+        'currency': 'XOF',
+        'client_reference': reference,
+        'phone_number': phone,
+        'webhook_url': f"{settings.SITE_URL}/paiement/wave-webhook/",
+        'success_url': f"{settings.SITE_URL}/paiement_success/",
+        'failure_url': f"{settings.SITE_URL}/paiement_cancel/",
+        'merchant_id': config['merchant_id']
+    }
+
+    try:
+        response = requests.post(config['api_url'], json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        return JsonResponse({
+            'status': 'pending',
+            'reference': reference,
+            'wave_checkout_url': data.get('checkout_url'),
+            'message': "Paiement Wave initié. Confirmez sur votre téléphone."
+        })
+    except requests.RequestException as e:
+        logging.error(f"Erreur API Wave: {str(e)}")
+        return JsonResponse({'error': 'Erreur de connexion Wave'}, status=500)
+
+
+def initiate_orange_payment(request, phone, amount, reference):
+    """
+    Initier un paiement Orange Money.
+    """
+    config = MOBILE_MONEY_CONFIG['orange']
+    
+    if not config['client_id']:
+        return JsonResponse({'error': 'Configuration Orange manquante'}, status=500)
+
+    # D'abord obtenir le token d'accès
+    token_payload = {
+        'grant_type': 'client_credentials',
+        'client_id': config['client_id'],
+        'client_secret': config['client_secret']
+    }
+    
+    try:
+        token_response = requests.post(
+            'https://api.orange.com/oauth/v3/token',
+            data=token_payload,
+            timeout=30
+        )
+        token_response.raise_for_status()
+        token_data = token_response.json()
+        access_token = token_data['access_token']
+        
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            'merchant_key': config['merchant_key'],
+            'currency': 'XOF',
+            'order_id': reference,
+            'amount': str(int(amount)),
+            'return_url': f"{settings.SITE_URL}/paiement_success/",
+            'cancel_url': f"{settings.SITE_URL}/paiement_cancel/",
+            'notif_url': f"{settings.SITE_URL}/paiement/orange-webhook/",
+            'lang': 'fr',
+            'reference': reference
+        }
+        
+        payment_response = requests.post(config['api_url'], json=payload, headers=headers, timeout=30)
+        payment_response.raise_for_status()
+        
+        data = payment_response.json()
+        return JsonResponse({
+            'status': 'pending',
+            'reference': reference,
+            'orange_payment_url': data.get('payment_url'),
+            'message': "Paiement Orange Money initié. Confirmez sur votre téléphone."
+        })
+    except requests.RequestException as e:
+        logging.error(f"Erreur API Orange: {str(e)}")
+        return JsonResponse({'error': 'Erreur de connexion Orange Money'}, status=500)
+
+
+def initiate_lemfi_payment(request, phone, amount, reference):
+    """
+    Initier un paiement Lemfi.
+    """
+    config = MOBILE_MONEY_CONFIG['lemfi']
+    
+    if not config['api_key']:
+        return JsonResponse({'error': 'Configuration Lemfi manquante'}, status=500)
+
+    headers = {
+        'Authorization': f'Bearer {config["api_key"]}',
+        'Content-Type': 'application/json'
+    }
+
+    payload = {
+        'amount': int(amount),
+        'currency': 'XOF',
+        'phone_number': phone,
+        'reference': reference,
+        'description': f'Paiement commande eButik #{reference}',
+        'webhook_url': f"{settings.SITE_URL}/paiement/lemfi-webhook/",
+        'success_url': f"{settings.SITE_URL}/paiement_success/",
+        'cancel_url': f"{settings.SITE_URL}/paiement_cancel/",
+        'merchant_id': config['merchant_id']
+    }
+
+    try:
+        response = requests.post(config['api_url'], json=payload, headers=headers, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        return JsonResponse({
+            'status': 'pending',
+            'reference': reference,
+            'lemfi_checkout_url': data.get('checkout_url'),
+            'message': "Paiement Lemfi initié. Confirmez sur votre téléphone."
+        })
+    except requests.RequestException as e:
+        logging.error(f"Erreur API Lemfi: {str(e)}")
+        return JsonResponse({'error': 'Erreur de connexion Lemfi'}, status=500)
+
+
+@csrf_exempt
+@require_POST
+def wave_webhook(request):
+    """
+    Webhook pour confirmer les paiements Wave.
+    """
+    config = MOBILE_MONEY_CONFIG['wave']
+    
+    # Vérifier la signature du webhook
+    signature = request.META.get('HTTP_X_WAVE_SIGNATURE')
+    if not signature:
+        return HttpResponse(status=400)
+    
+    # Calculer la signature attendue (simplifié - à adapter selon la doc Wave)
+    expected_signature = config['webhook_secret']
+    if signature != expected_signature:
+        return HttpResponse(status=401)
+    
+    try:
+        data = json.loads(request.body)
+        
+        if data.get('status') == 'successful':
+            reference = data.get('client_reference')
+            amount = data.get('amount')
+            
+            # Traiter le paiement réussi
+            success = process_mobile_payment_success(reference, 'wave', amount)
+            if success:
+                return HttpResponse(status=200)
+        
+        return HttpResponse(status=400)
+    except Exception as e:
+        logging.error(f"Erreur webhook Wave: {str(e)}")
+        return HttpResponse(status=500)
+
+
+@csrf_exempt
+@require_POST
+def orange_webhook(request):
+    """
+    Webhook pour confirmer les paiements Orange Money.
+    """
+    config = MOBILE_MONEY_CONFIG['orange']
+    
+    # Vérifier la signature du webhook
+    signature = request.META.get('HTTP_X_ORANGE_SIGNATURE')
+    if not signature:
+        return HttpResponse(status=400)
+    
+    try:
+        data = json.loads(request.body)
+        
+        if data.get('status') == 'SUCCESS':
+            reference = data.get('order_id')
+            amount = data.get('amount')
+            
+            # Traiter le paiement réussi
+            success = process_mobile_payment_success(reference, 'orange', amount)
+            if success:
+                return HttpResponse(status=200)
+        
+        return HttpResponse(status=400)
+    except Exception as e:
+        logging.error(f"Erreur webhook Orange: {str(e)}")
+        return HttpResponse(status=500)
+
+
+@csrf_exempt
+@require_POST
+def lemfi_webhook(request):
+    """
+    Webhook pour confirmer les paiements Lemfi.
+    """
+    config = MOBILE_MONEY_CONFIG['lemfi']
+    
+    # Vérifier la signature du webhook
+    signature = request.META.get('HTTP_X_LEMFI_SIGNATURE')
+    if not signature:
+        return HttpResponse(status=400)
+    
+    try:
+        data = json.loads(request.body)
+        
+        if data.get('status') == 'completed':
+            reference = data.get('reference')
+            amount = data.get('amount')
+            
+            # Traiter le paiement réussi
+            success = process_mobile_payment_success(reference, 'lemfi', amount)
+            if success:
+                return HttpResponse(status=200)
+        
+        return HttpResponse(status=400)
+    except Exception as e:
+        logging.error(f"Erreur webhook Lemfi: {str(e)}")
+        return HttpResponse(status=500)
+
+
+def process_mobile_payment_success(reference, provider, amount):
+    """
+    Traiter un paiement mobile money réussi.
+    """
+    try:
+        from core.models import Order
+        
+        # Trouver la commande par référence
+        order = Order.objects.filter(
+            payment_reference=reference,
+            status='pending'
+        ).first()
+        
+        if order:
+            order.status = 'paid'
+            order.payment_method = f'mobile_{provider}'
+            order.save()
+            
+            # Envoyer email de confirmation
+            send_mail(
+                'Votre commande a été bien reçue',
+                f'Bonjour {order.customer.first_name},\n\nMerci pour votre commande #{order.id} ! Paiement {provider.upper()} confirmé.\nNous la traitons actuellement.',
+                settings.DEFAULT_FROM_EMAIL,
+                [order.customer.email],
+                fail_silently=True,
+            )
+            
+            return True
+        
+        return False
+    except Exception as e:
+        logging.error(f"Erreur traitement paiement {provider}: {str(e)}")
+        return False
 
 
 @require_POST

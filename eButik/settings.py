@@ -244,3 +244,63 @@ STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
 STRIPE_SUCCESS_URL = os.getenv('STRIPE_SUCCESS_URL', 'http://127.0.0.1:8000/paiement/paiement_success.html')
 STRIPE_CANCEL_URL = os.getenv('STRIPE_CANCEL_URL', 'http://127.0.0.1:8000/cancel')
 
+# Configuration des APIs Mobile Money pour le Sénégal
+# Les clés API sont chargées depuis les variables d'environnement (via fichier .env)
+
+# Configuration Wave
+WAVE_API_BASE_URL = 'https://api.wave.com/v1'
+WAVE_CLIENT_ID = os.getenv('WAVE_CLIENT_ID', '')
+WAVE_CLIENT_SECRET = os.getenv('WAVE_CLIENT_SECRET', '')
+WAVE_WEBHOOK_SECRET = os.getenv('WAVE_WEBHOOK_SECRET', '')
+WAVE_SUCCESS_URL = os.getenv('WAVE_SUCCESS_URL', 'http://127.0.0.1:8000/paiement/paiement_success.html')
+WAVE_CANCEL_URL = os.getenv('WAVE_CANCEL_URL', 'http://127.0.0.1:8000/paiement/paiement_cancel.html')
+
+# Configuration Orange Money
+ORANGE_MONEY_API_BASE_URL = 'https://api.orange.com'
+ORANGE_MONEY_CLIENT_ID = os.getenv('ORANGE_MONEY_CLIENT_ID', '')
+ORANGE_MONEY_CLIENT_SECRET = os.getenv('ORANGE_MONEY_CLIENT_SECRET', '')
+ORANGE_MONEY_MERCHANT_KEY = os.getenv('ORANGE_MONEY_MERCHANT_KEY', '')
+ORANGE_MONEY_WEBHOOK_SECRET = os.getenv('ORANGE_MONEY_WEBHOOK_SECRET', '')
+ORANGE_MONEY_SUCCESS_URL = os.getenv('ORANGE_MONEY_SUCCESS_URL', 'http://127.0.0.1:8000/paiement/paiement_success.html')
+ORANGE_MONEY_CANCEL_URL = os.getenv('ORANGE_MONEY_CANCEL_URL', 'http://127.0.0.1:8000/paiement/paiement_cancel.html')
+
+# Configuration Lemfi
+LEMFY_API_BASE_URL = 'https://api.lemfi.com/v1'
+LEMFY_API_KEY = os.getenv('LEMFY_API_KEY', '')
+LEMFY_SECRET_KEY = os.getenv('LEMFY_SECRET_KEY', '')
+LEMFY_WEBHOOK_SECRET = os.getenv('LEMFY_WEBHOOK_SECRET', '')
+LEMFY_SUCCESS_URL = os.getenv('LEMFY_SUCCESS_URL', 'http://127.0.0.1:8000/paiement/paiement_success.html')
+LEMFY_CANCEL_URL = os.getenv('LEMFY_CANCEL_URL', 'http://127.0.0.1:8000/paiement/paiement_cancel.html')
+
+# Configuration générale des paiements mobile money
+MOBILE_MONEY_CONFIG = {
+    'wave': {
+        'api_base_url': WAVE_API_BASE_URL,
+        'client_id': WAVE_CLIENT_ID,
+        'client_secret': WAVE_CLIENT_SECRET,
+        'webhook_secret': WAVE_WEBHOOK_SECRET,
+        'success_url': WAVE_SUCCESS_URL,
+        'cancel_url': WAVE_CANCEL_URL,
+        'timeout': 30,  # secondes
+    },
+    'orange': {
+        'api_base_url': ORANGE_MONEY_API_BASE_URL,
+        'client_id': ORANGE_MONEY_CLIENT_ID,
+        'client_secret': ORANGE_MONEY_CLIENT_SECRET,
+        'merchant_key': ORANGE_MONEY_MERCHANT_KEY,
+        'webhook_secret': ORANGE_MONEY_WEBHOOK_SECRET,
+        'success_url': ORANGE_MONEY_SUCCESS_URL,
+        'cancel_url': ORANGE_MONEY_CANCEL_URL,
+        'timeout': 30,
+    },
+    'lemfi': {
+        'api_base_url': LEMFY_API_BASE_URL,
+        'api_key': LEMFY_API_KEY,
+        'secret_key': LEMFY_SECRET_KEY,
+        'webhook_secret': LEMFY_WEBHOOK_SECRET,
+        'success_url': LEMFY_SUCCESS_URL,
+        'cancel_url': LEMFY_CANCEL_URL,
+        'timeout': 30,
+    }
+}
+
