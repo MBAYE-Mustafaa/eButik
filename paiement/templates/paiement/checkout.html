@@ -259,140 +259,6 @@
     </div>
 </div>
 
-<style>
-.payment-option {
-    background:#f8f9fa;
-    padding:12px;
-    border-radius:8px;
-    border:1px solid #eaeaea;
-    cursor:pointer;
-    transition:0.2s;
-}
-.payment-option:hover {
-    border-color:#000;
-}
-.payment-option input {
-    margin-right:8px;
-}
-#card-number-element, #card-expiry-element, #card-cvc-element {
-    background: white;
-    border: 1px solid #ced4da;
-    transition: border-color 0.15s ease-in-out;
-}
-
-/* Styles pour les cartes Mobile Money */
-.mobile-provider-option {
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.provider-card {
-    border: 2px solid #e9ecef;
-    border-radius: 12px;
-    padding: 15px;
-    background: white;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    transition: all 0.3s ease;
-    height: 100%;
-}
-
-.mobile-provider-option:hover .provider-card {
-    border-color: #007bff;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,123,255,0.15);
-}
-
-.mobile-provider-option input:checked + .provider-card,
-.provider-card.selected {
-    border-color: #28a745;
-    background: #f8fff9;
-    box-shadow: 0 0 0 3px rgba(40,167,69,0.1);
-}
-
-.provider-logo {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-}
-
-.provider-info strong {
-    display: block;
-    font-size: 16px;
-    color: #333;
-}
-
-.provider-info small {
-    color: #6c757d;
-    font-size: 12px;
-}
-
-/* Logos spécifiques */
-.orange-logo {
-    color: #ff6b35;
-}
-
-.wave-logo {
-    color: #0099ff;
-}
-
-.lemfi-logo {
-    color: #28a745;
-}
-
-.free-logo {
-    color: #6c757d;
-}
-
-/* Cartes colorées */
-.orange-card .provider-logo {
-    background: linear-gradient(135deg, #ff6b35, #ff8c42);
-}
-
-.wave-card .provider-logo {
-    background: linear-gradient(135deg, #0099ff, #33adff);
-}
-
-.lemfi-card .provider-logo {
-    background: linear-gradient(135deg, #28a745, #20c997);
-}
-
-.free-card .provider-logo {
-    background: linear-gradient(135deg, #6c757d, #adb5bd);
-}
-
-.orange-card .provider-logo,
-.wave-card .provider-logo,
-.lemfi-card .provider-logo,
-.free-card .provider-logo {
-    color: white;
-}
-</style>
-#card-number-element:focus-within, #card-expiry-element:focus-within, #card-cvc-element:focus-within {
-    border-color: #86b7fe;
-    box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
-}
-.loader {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid #f3f3f3;
-    border-radius: 50%;
-    border-top: 3px solid #3498db;
-    animation: spin 1s linear infinite;
-    margin-right: 10px;
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-</style>
-
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 // Fonction pour récupérer le cookie CSRF
@@ -414,9 +280,18 @@ function getCookie(name) {
 // Fonction pour basculer entre les méthodes de paiement
 function toggleFields(){
     const method = document.querySelector('input[name="payment_method"]:checked').value;
-    document.getElementById('card-fields').style.display = method === 'card' ? 'block' : 'none';
-    document.getElementById('mobile-fields').style.display = method === 'mobile' ? 'block' : 'none';
-    document.getElementById('sepa-fields').style.display = method === 'sepa' ? 'block' : 'none';
+    const cardFields = document.getElementById('card-fields');
+    const mobileFields = document.getElementById('mobile-fields');
+    const sepaFields = document.getElementById('sepa-fields');
+
+    cardFields.style.display = method === 'card' ? 'block' : 'none';
+    mobileFields.style.display = method === 'mobile' ? 'block' : 'none';
+    sepaFields.style.display = method === 'sepa' ? 'block' : 'none';
+
+    // Disable inputs in hidden sections so browser won't validate them
+    Array.from(cardFields.querySelectorAll('input, textarea, select')).forEach(el => el.disabled = method !== 'card');
+    Array.from(mobileFields.querySelectorAll('input, textarea, select')).forEach(el => el.disabled = method !== 'mobile');
+    Array.from(sepaFields.querySelectorAll('input, textarea, select')).forEach(el => el.disabled = method !== 'sepa');
 }
 
 // Initialisation
